@@ -14,7 +14,7 @@ ingestion:
     index: "CC-MAIN-2024-46"                    # Which crawl to query
     cdx_api_url: "https://index.commoncrawl.org"
     max_pages: 5                                 # CDX pages to fetch
-    max_wet_files: 10                            # WET segments to download
+    max_wet_files: 160                           # WET segments to download
     max_records_per_file: 50000                  # Cap records per WET file
     # Domain hints — CDX will filter to URLs matching these
     domain_filters:

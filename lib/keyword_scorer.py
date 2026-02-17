@@ -1,14 +1,17 @@
 """
 Keyword scoring engine for SaaS buying signal detection.
 
-Scores text passages against a weighted keyword dictionary.
-Extracts context windows (surrounding sentences) around matches.
-Enforces the 240-character snippet limit.
+Enforces precision-focused filtering:
+  1. Domain blocklist: reject gambling, dating, coupon, adult, SEO spam URLs
+  2. Co-occurrence: require BOTH a decision verb AND a software-related noun
+  3. Reasoning phrase: require causal/deliberative language
+  4. Keyword scoring with weighted signals
+  5. Context window extraction with 240-char limit
 """
 
 import re
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 
@@ -33,9 +36,134 @@ class ScoredPassage:
         }
 
 
+# ── Constraint 1: Domain blocklist ──────────────────────────────────
+
+BLOCKED_URL_PATTERNS = [
+    # Gambling / casino
+    re.compile(r'\b(casino|poker|slot|betting|gambl|jackpot|roulette|blackjack|sportsbook)\b', re.I),
+    # Dating / adult
+    re.compile(r'\b(dating|hookup|escort|adult|porn|xxx|cam[s]?girl|onlyfans)\b', re.I),
+    # Coupon / deal spam
+    re.compile(r'\b(coupon[s]?code|promo-?code|discount-?code|deal[s]?of|cashback|freebies)\b', re.I),
+    # SEO spam patterns
+    re.compile(r'\b(buy-?backlinks|seo-?service|link-?building|guest-?post-?service|pbn)\b', re.I),
+    # Pharma spam
+    re.compile(r'\b(viagra|cialis|pharmacy-?online|buy-?pills|weight-?loss-?pill)\b', re.I),
+    # Pirated content / file sharing
+    re.compile(r'\b(djvu|torrent|pirate|warez|cracked|keygen)\b', re.I),
+]
+
+BLOCKED_CONTENT_PATTERNS = [
+    # Gambling content markers
+    re.compile(r'\b(free\s+spins|no\s+deposit\s+bonus|wagering\s+requirement|slot\s+machine|live\s+dealer)\b', re.I),
+    # Dating content markers
+    re.compile(r'\b(find\s+a\s+date|singles\s+near|hookup\s+site|dating\s+app\s+review)\b', re.I),
+    # Generic spam signals
+    re.compile(r'\b(click\s+here\s+to\s+buy|limited\s+time\s+offer|act\s+now|order\s+today)\b', re.I),
+    # Crypto/forex spam (not legit fintech)
+    re.compile(r'\b(crypto\s+signal|forex\s+robot|binary\s+option|guaranteed\s+return|passive\s+income\s+online)\b', re.I),
+]
+
+
+def is_blocked_domain(url: str) -> bool:
+    """Check if a URL matches blocked domain patterns."""
+    if not url:
+        return False
+    url_lower = url.lower()
+    for pattern in BLOCKED_URL_PATTERNS:
+        if pattern.search(url_lower):
+            return True
+    return False
+
+
+def has_spam_content(text: str) -> bool:
+    """Check if text contains spam content markers."""
+    for pattern in BLOCKED_CONTENT_PATTERNS:
+        if pattern.search(text):
+            return True
+    return False
+
+
+# ── Constraint 2: Decision verb + software noun co-occurrence ───────
+
+DECISION_VERBS = re.compile(
+    r'\b('
+    r'evaluat\w*|compar\w*|assess\w*|chose|choose|choosing|'
+    r'select\w*|shortlist\w*|procur\w*|purchas\w*|'
+    r'switch\w*|migrat\w*|adopt\w*|implement\w*|deploy\w*|'
+    r'negotiat\w*|renew\w*|cancel\w*|replac\w*|'
+    r'onboard\w*|integrat\w*|pilot\w*|trial\w*|'
+    r'demo\w*|benchmark\w*|vett\w*|audit\w*|'
+    r'review\w*|analyz\w*|test(?:ed|ing)|'
+    r'decided|deciding|sign(?:ed|ing)\s+(?:up|on|with)|'
+    r'went\s+with|opted\s+for|rolled?\s+out|'
+    r'narrow\w*\s+down|ruled?\s+out'
+    r')\b',
+    re.I,
+)
+
+SOFTWARE_NOUNS = re.compile(
+    r'\b('
+    r'SaaS|software|platform|tool|solution|vendor|provider|'
+    r'product|service|subscription|license|'
+    r'CRM|ERP|HRIS|HCM|LMS|CMS|ATS|CDP|'
+    r'cloud|API|dashboard|module|suite|'
+    r'Salesforce|HubSpot|Workday|ServiceNow|Zendesk|Slack|'
+    r'Jira|Confluence|Notion|Asana|Monday|'
+    r'SAP|Oracle|Microsoft\s+365|Google\s+Workspace|'
+    r'AWS|Azure|GCP|Snowflake|Databricks|'
+    r'Stripe|Twilio|SendGrid|Okta|Auth0|'
+    r'enterprise\s+software|business\s+application|'
+    r'tech\s+stack|software\s+stack|martech|'
+    r'procurement\s+system|vendor\s+management'
+    r')\b',
+    re.I,
+)
+
+
+def has_decision_verb(text: str) -> bool:
+    return bool(DECISION_VERBS.search(text))
+
+
+def has_software_noun(text: str) -> bool:
+    return bool(SOFTWARE_NOUNS.search(text))
+
+
+# ── Constraint 3: Reasoning phrases ─────────────────────────────────
+
+REASONING_PHRASES = re.compile(
+    r'\b('
+    r'because|due\s+to|owing\s+to|'
+    r'needed|required|requirement[s]?|'
+    r'after\s+(?:testing|evaluating|comparing|reviewing|trying|assessing|piloting)|'
+    r'deciding\s+factor|key\s+factor|main\s+reason|'
+    r'the\s+reason\s+(?:we|they|our|I)|'
+    r'in\s+order\s+to|so\s+(?:we|they|that)|'
+    r'which\s+(?:led|helped|allowed|enabled|made)|'
+    r'as\s+a\s+result|consequently|therefore|'
+    r'based\s+on|given\s+(?:that|the)|considering|'
+    r'(?:better|worse|cheaper|faster|easier|harder)\s+than|'
+    r'compared\s+to|versus|vs\.?|'
+    r'pros?\s+and\s+cons?|trade-?off|'
+    r'ultimately|finally\s+(?:chose|decided|went|selected)|'
+    r'the\s+(?:biggest|main|primary|key)\s+(?:advantage|disadvantage|benefit|drawback|concern|issue)|'
+    r'what\s+(?:sold|convinced|swayed|persuaded)\s+(?:us|them|me)|'
+    r'(?:worth|not\s+worth)\s+(?:the|it)|'
+    r'outweigh\w*|prioritiz\w*|'
+    r'criteria|must-?have|nice-?to-?have|deal-?breaker'
+    r')\b',
+    re.I,
+)
+
+
+def has_reasoning_phrase(text: str) -> bool:
+    return bool(REASONING_PHRASES.search(text))
+
+
+# ── Core scoring ─────────────────────────────────────────────────────
+
 def split_sentences(text: str) -> list[str]:
     """Split text into sentences using regex."""
-    # Handle common abbreviations to avoid false splits
     text = re.sub(r'\b(Mr|Mrs|Ms|Dr|Prof|Inc|Ltd|Corp|etc|vs)\.',
                   r'\1<DOT>', text)
     sentences = re.split(r'(?<=[.!?])\s+', text)
@@ -55,8 +183,6 @@ def score_text(
     matched = []
 
     for keyword, weight in signal_keywords.items():
-        # Use word boundary matching for single words,
-        # substring matching for multi-word phrases
         kw_lower = keyword.lower()
         if " " in kw_lower:
             if kw_lower in text_lower:
@@ -80,8 +206,7 @@ def extract_context_windows(
 ) -> list[dict]:
     """
     Find keyword matches and extract surrounding sentence context.
-    Returns list of {snippet, matched_keyword, sentence_index}.
-    Enforces max_snippet_chars limit.
+    Only yields windows that individually pass verb+noun+reasoning checks.
     """
     sentences = split_sentences(text)
     windows = []
@@ -97,9 +222,16 @@ def extract_context_windows(
                 end = min(len(sentences), i + sentences_after + 1)
                 snippet = " ".join(sentences[start:end])
 
-                # Enforce character limit
                 if len(snippet) > max_snippet_chars:
                     snippet = snippet[:max_snippet_chars - 3] + "..."
+
+                # Constraint 2+3 at snippet level: require verb+noun+reasoning
+                if not has_decision_verb(snippet):
+                    continue
+                if not has_software_noun(snippet):
+                    continue
+                if not has_reasoning_phrase(snippet):
+                    continue
 
                 windows.append({
                     "snippet": snippet,
@@ -123,13 +255,34 @@ def filter_passage(
 ) -> list[ScoredPassage]:
     """
     Full filtering pipeline for a single text passage.
-    Returns list of ScoredPassage (one per context window that meets threshold).
-    """
-    score, matched = score_text(text, signal_keywords)
 
+    Gate order:
+      1. Domain blocklist check
+      2. Spam content check
+      3. Keyword score threshold
+      4. Page-level: decision verb + software noun presence
+      5. Per-snippet: decision verb + software noun + reasoning phrase
+    """
+    # Constraint 1: domain blocklist
+    if is_blocked_domain(source_url):
+        return []
+
+    # Constraint 1b: spam content check on full text
+    if has_spam_content(text):
+        return []
+
+    # Keyword score gate
+    score, matched = score_text(text, signal_keywords)
     if score < min_score:
         return []
 
+    # Constraint 2 at page level: early exit
+    if not has_decision_verb(text):
+        return []
+    if not has_software_noun(text):
+        return []
+
+    # Extract context windows (each window re-checked for verb+noun+reasoning)
     windows = extract_context_windows(
         text, signal_keywords,
         sentences_before, sentences_after,

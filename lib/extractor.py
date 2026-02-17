@@ -122,25 +122,45 @@ def _compute_confidence(
     Heuristic confidence score 0.0–1.0.
     Rewards: multiple signal types found, reasonable text length.
     Penalizes: very short text, no structured signals.
+
+    Note: All rows reaching this point have already passed precision gates
+    (decision verb + software noun + reasoning phrase), so the baseline
+    is higher than a naive scorer would assign.
     """
     score = 0.0
 
+    # Signal type count — how many distinct signal categories are present
+    signal_types = sum([
+        bool(workflow_matches),
+        bool(criteria_matches),
+        bool(objection_matches),
+        bool(industry_matches),
+    ])
+
     # Workflow signal — primary indicator
     if workflow_matches:
-        score += 0.35
+        score += 0.32
         if len(workflow_matches) > 1:
             score += 0.05
     # Criteria signal — strong buying indicator
     if criteria_matches:
-        score += 0.25
+        score += 0.26
         if len(criteria_matches) > 1:
-            score += 0.10
+            score += 0.08
     # Objection signal (strong buying discussion indicator)
     if objection_matches:
-        score += 0.10
+        score += 0.12
     # Industry signal
     if industry_matches:
-        score += 0.05
+        score += 0.07
+
+    # Multi-signal bonus: rows with 2+ signal types are high-quality
+    # (all rows already passed precision gates: verb + noun + reasoning)
+    if signal_types >= 3:
+        score += 0.12
+    elif signal_types >= 2:
+        score += 0.10
+
     # Text length bonus
     if 80 < text_length < 240:
         score += 0.05
@@ -171,6 +191,10 @@ def extract_row(
 
     # Must have at least one structured signal
     if not (workflow_matches or criteria_matches or objection_matches):
+        return None
+
+    # Constraint 4: require at least one of criteria or workflow_step
+    if not criteria_matches and not workflow_matches:
         return None
 
     confidence = _compute_confidence(

@@ -150,31 +150,43 @@ def main():
     max_records = cc_cfg["max_records_per_file"]
     prefilter_kws = [kw.lower() for kw in cc_cfg["keyword_prefilter"]]
 
+    # Use multiple crawl indexes for more diverse data
+    crawl_indexes = [cc_index, "CC-MAIN-2024-51"]
+
     raw_dir = resolve_path("data/raw")
     raw_dir.mkdir(parents=True, exist_ok=True)
 
-    wet_paths = fetch_wet_paths(cc_index)
+    # Gather WET paths from all crawl indexes
+    all_wet_entries = []  # (path, index)
+    for idx in crawl_indexes:
+        try:
+            paths = fetch_wet_paths(idx)
+            wet_per_index = max_wet // len(crawl_indexes)
+            step = max(1, len(paths) // wet_per_index)
+            selected_paths = [paths[i * step] for i in range(wet_per_index) if i * step < len(paths)]
+            all_wet_entries.extend([(p, idx) for p in selected_paths])
+            logger.info(f"  Selected {len(selected_paths)} from {idx}")
+        except Exception as e:
+            logger.warning(f"  Failed to fetch paths for {idx}: {e}")
 
-    # Spread selections for diversity
-    step = max(1, len(wet_paths) // max_wet)
-    selected = [wet_paths[i * step] for i in range(max_wet) if i * step < len(wet_paths)]
-    logger.info(f"Selected {len(selected)} WET files (every {step}th)")
+    selected = all_wet_entries
+    logger.info(f"Total selected: {len(selected)} WET files across {len(crawl_indexes)} crawls")
 
     all_records = []
     all_stats = []
 
-    for i, path in enumerate(selected):
-        logger.info(f"=== File {i+1}/{len(selected)} ===")
+    for i, (path, idx) in enumerate(selected):
+        logger.info(f"=== File {i+1}/{len(selected)} ({idx}) ===")
         records, stats = stream_wet_file(
-            path, cc_index, prefilter_kws, max_records,
+            path, idx, prefilter_kws, max_records,
         )
         all_records.extend(records)
         all_stats.append(stats)
         logger.info(f"  Running total: {len(all_records):,} records")
 
         # If we already have plenty of data, stop early
-        if len(all_records) >= 5000:
-            logger.info("  Reached 5000 record target, stopping early")
+        if len(all_records) >= 40000:
+            logger.info("  Reached 40000 record target, stopping early")
             break
 
     # Save
