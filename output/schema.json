@@ -2,7 +2,7 @@
   "name": "saas_buying_intelligence",
   "version": "1.0.0",
   "description": "Structured behavioral intelligence for B2B SaaS buying decisions. Each row represents a detected buying signal with context, criteria, objections, workflow stage, and industry classification.",
-  "row_count": 550,
+  "row_count": 890,
   "fields": {
     "decision_context": {
       "type": "string",
@@ -61,5 +61,5 @@
     "text_limit": "All text fields limited to 240 characters",
     "redistribution": "This dataset contains structured insights, not raw page text. No long verbatim passages are stored."
   },
-  "generated_at": "2026-02-17T23:16:11Z"
+  "generated_at": "2026-02-17T23:48:40Z"
 }
