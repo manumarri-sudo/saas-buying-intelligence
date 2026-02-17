@@ -1,0 +1,18 @@
+# B2B SaaS Buying Intelligence Module — Dependencies
+# Core
+pandas>=2.0
+pyarrow>=14.0
+pyyaml>=6.0
+
+# Common Crawl ingestion
+requests>=2.31
+warcio>=1.7
+
+# Fuzzy deduplication
+rapidfuzz>=3.0
+
+# Embeddings (optional — only needed for 05_package.py embedding step)
+sentence-transformers>=2.2
+
+# LLM fallback (optional — only if extraction.llm_fallback.enabled=true)
+anthropic>=0.20

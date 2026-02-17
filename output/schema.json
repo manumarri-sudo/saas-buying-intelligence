@@ -1,0 +1,65 @@
+{
+  "name": "saas_buying_intelligence",
+  "version": "1.0.0",
+  "description": "Structured behavioral intelligence for B2B SaaS buying decisions. Each row represents a detected buying signal with context, criteria, objections, workflow stage, and industry classification.",
+  "row_count": 1640,
+  "fields": {
+    "decision_context": {
+      "type": "string",
+      "max_length": 240,
+      "description": "Brief context of the SaaS buying situation. Truncated to 240 chars for legal compliance.",
+      "nullable": false
+    },
+    "criteria": {
+      "type": "string",
+      "description": "Comma-separated evaluation criteria detected (pricing, security, scalability, integration, usability, support, features).",
+      "nullable": true
+    },
+    "objection": {
+      "type": "string",
+      "description": "Buying objections or blockers detected (too_expensive, security_concern, poor_integration, complexity, vendor_lock_in, missing_feature).",
+      "nullable": true
+    },
+    "workflow_step": {
+      "type": "string",
+      "description": "Stage in the B2B buying process (discovery, evaluation, shortlisting, trial, negotiation, procurement, implementation, renewal).",
+      "nullable": true
+    },
+    "industry_hint": {
+      "type": "string",
+      "description": "Detected industry context (healthcare, finance, education, ecommerce, technology, manufacturing, government, media).",
+      "nullable": true
+    },
+    "confidence": {
+      "type": "float64",
+      "range": [
+        0.0,
+        1.0
+      ],
+      "description": "Extraction confidence score.",
+      "nullable": false
+    },
+    "source_url": {
+      "type": "string",
+      "description": "Original source URL from Common Crawl.",
+      "nullable": true
+    },
+    "crawl_date": {
+      "type": "string",
+      "description": "Crawl timestamp from Common Crawl.",
+      "nullable": true
+    },
+    "matched_keywords": {
+      "type": "string",
+      "description": "Comma-separated SaaS buying keywords that triggered extraction.",
+      "nullable": true
+    }
+  },
+  "legal_notes": {
+    "source": "Common Crawl (CC-BY-4.0 terms) and optional licensed datasets",
+    "pii_status": "All rows scanned; rows with detected PII removed",
+    "text_limit": "All text fields limited to 240 characters",
+    "redistribution": "This dataset contains structured insights, not raw page text. No long verbatim passages are stored."
+  },
+  "generated_at": "2026-02-17T22:29:39Z"
+}

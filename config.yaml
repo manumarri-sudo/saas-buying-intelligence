@@ -1,0 +1,135 @@
+# ============================================================
+# B2B SaaS Buying Intelligence Module — Pipeline Configuration
+# ============================================================
+
+project:
+  name: "saas_buying_intelligence"
+  version: "1.0.0"
+  description: "Agent-ready intelligence module for B2B SaaS buying behavior"
+
+# --- Ingestion ---
+ingestion:
+  # Common Crawl settings
+  common_crawl:
+    index: "CC-MAIN-2024-46"                    # Which crawl to query
+    cdx_api_url: "https://index.commoncrawl.org"
+    max_pages: 5                                 # CDX pages to fetch
+    max_wet_files: 10                            # WET segments to download
+    max_records_per_file: 50000                  # Cap records per WET file
+    # Domain hints — CDX will filter to URLs matching these
+    domain_filters:
+      - "*.com"
+    # Text must contain at least one of these to be retained at ingestion
+    keyword_prefilter:
+      - "SaaS"
+      - "software purchase"
+      - "vendor selection"
+      - "procurement"
+      - "RFP"
+      - "software evaluation"
+      - "cloud platform"
+      - "enterprise software"
+
+  # Optional licensed data ingestion
+  licensed_data:
+    input_dir: "data/licensed"
+    accepted_formats: [".csv", ".json", ".jsonl"]
+
+# --- Filtering ---
+filtering:
+  # Weighted keyword signals for SaaS buying behavior
+  signal_keywords:
+    choose: 3
+    shortlist: 4
+    compare: 3
+    trial: 3
+    switch: 2
+    evaluate: 4
+    procurement: 5
+    RFP: 5
+    integration: 2
+    pricing: 3
+    onboarding: 2
+    security review: 4
+    scalability: 2
+    vendor: 4
+    deploy: 2
+    migrate: 3
+    contract: 3
+    renewal: 3
+    pilot: 4
+    demo: 3
+    stakeholder: 3
+    compliance: 3
+    ROI: 4
+    total cost of ownership: 5
+    implementation: 3
+    single sign-on: 3
+    API: 2
+    data migration: 4
+    SLA: 4
+    proof of concept: 5
+    due diligence: 5
+
+  # Minimum score to pass filtering
+  min_score: 10
+  # Context window: sentences before/after match
+  context_sentences_before: 1
+  context_sentences_after: 1
+  # Hard max for any stored text snippet
+  max_snippet_chars: 240
+
+# --- Extraction ---
+extraction:
+  # Confidence thresholds
+  high_confidence_threshold: 0.7
+  low_confidence_threshold: 0.4
+  # LLM fallback (optional — set enabled: true and provide API key)
+  llm_fallback:
+    enabled: false
+    provider: "anthropic"
+    model: "claude-haiku-4-5-20251001"
+    api_key_env: "ANTHROPIC_API_KEY"
+    max_calls: 500                               # Budget cap
+    cost_per_call_estimate: 0.002
+
+# --- Validation ---
+validation:
+  # Fuzzy deduplication
+  dedup:
+    similarity_threshold: 85                     # 0-100, rapidfuzz ratio
+    field: "decision_context"
+  # PII detection — regex-based
+  pii:
+    drop_on_detect: true
+    patterns:
+      email: true
+      phone: true
+      address: true
+      ssn: true
+  # Maximum allowed snippet length in final output
+  max_text_length: 240
+  # Minimum confidence to include in final dataset
+  min_confidence: 0.7
+
+# --- Packaging ---
+packaging:
+  output_dir: "output"
+  dataset_filename: "dataset.parquet"
+  schema_filename: "schema.json"
+  provenance_filename: "provenance.json"
+  quality_report_filename: "quality_report.json"
+
+# --- Embeddings ---
+embeddings:
+  model: "all-MiniLM-L6-v2"                     # sentence-transformers model
+  batch_size: 64
+  output_format: "npy"                           # npy or faiss_index
+  dimension: 384
+
+# --- RAG ---
+rag:
+  chunk_strategy: "row"                          # each row = one chunk
+  similarity_metric: "cosine"
+  top_k: 10
+  similarity_threshold: 0.72

@@ -1,0 +1,14 @@
+# Intermediate pipeline data (large, regenerable)
+data/raw/
+data/filtered/
+data/extracted/
+data/licensed/
+
+# Python
+__pycache__/
+*.pyc
+.DS_Store
+
+# Environment
+.env
+venv/

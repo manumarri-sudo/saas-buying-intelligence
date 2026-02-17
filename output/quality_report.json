@@ -1,0 +1,100 @@
+{
+  "stage": "validation",
+  "row_counts": {
+    "input": 13791,
+    "output": 1640,
+    "dropped_total": 12151,
+    "flagged_low_confidence": 9857
+  },
+  "duplicate_rate": 0.151,
+  "noise_rate": 0.8811,
+  "pii_detection": {
+    "rows_dropped": 211,
+    "pii_types_found": {
+      "credit_card": 1,
+      "email": 73,
+      "address": 45,
+      "phone": 110,
+      "ssn": 27
+    }
+  },
+  "text_truncation": {
+    "fields_truncated": "0"
+  },
+  "confidence_distribution": {
+    "mean": 0.75,
+    "median": 0.72,
+    "std": 0.037,
+    "min": 0.7,
+    "max": 0.92,
+    "p25": 0.72,
+    "p75": 0.77
+  },
+  "workflow_step_distribution": {
+    "implementation": 544,
+    "negotiation": 141,
+    "evaluation": 86,
+    "evaluation, implementation": 71,
+    "discovery, implementation": 66,
+    "negotiation, implementation": 62,
+    "procurement": 58,
+    "discovery": 50,
+    "trial, implementation": 45,
+    "evaluation, negotiation": 44,
+    "renewal": 36,
+    "implementation, renewal": 35,
+    "negotiation, procurement": 34,
+    "procurement, implementation": 34,
+    "trial": 31,
+    "trial, negotiation": 31,
+    "discovery, negotiation": 25,
+    "discovery, evaluation": 20,
+    "evaluation, procurement": 19,
+    "evaluation, trial": 17
+  },
+  "criteria_distribution": {
+    "integration, features": 221,
+    "integration": 123,
+    "pricing": 99,
+    "integration, support": 82,
+    "pricing, scalability": 69,
+    "scalability, integration": 62,
+    "security, integration": 61,
+    "pricing, support": 61,
+    "pricing, features": 59,
+    "pricing, integration": 57,
+    "features": 56,
+    "scalability, features": 53,
+    "support, features": 47,
+    "security, features": 42,
+    "support": 39,
+    "security, scalability": 38,
+    "pricing, security": 38,
+    "security, support": 35,
+    "integration, support, features": 31,
+    "scalability": 30
+  },
+  "industry_distribution": {
+    "": 797,
+    "technology": 351,
+    "finance": 84,
+    "manufacturing": 73,
+    "media": 67,
+    "ecommerce": 46,
+    "education": 41,
+    "healthcare": 28,
+    "finance, technology": 23,
+    "technology, media": 16,
+    "government": 16,
+    "technology, manufacturing": 14,
+    "healthcare, technology": 12,
+    "ecommerce, technology": 9,
+    "education, technology": 6,
+    "finance, media": 5,
+    "technology, government": 5,
+    "ecommerce, media": 4,
+    "finance, technology, media": 4,
+    "education, media": 4
+  },
+  "pipeline_timestamp": "2026-02-17T22:29:38Z"
+}

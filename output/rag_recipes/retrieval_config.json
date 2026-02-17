@@ -1,0 +1,38 @@
+{
+  "retrieval": {
+    "embedding_model": "all-MiniLM-L6-v2",
+    "embedding_dimension": 384,
+    "similarity_metric": "cosine",
+    "top_k": 10,
+    "similarity_threshold": 0.72,
+    "chunk_strategy": "row"
+  },
+  "chunking": {
+    "method": "row_level",
+    "description": "Each dataset row is a self-contained chunk. The decision_context + criteria + workflow_step fields are concatenated for embedding and retrieval.",
+    "max_chunk_chars": 720
+  },
+  "reranking": {
+    "enabled": false,
+    "model": "cross-encoder/ms-marco-MiniLM-L-6-v2",
+    "top_k_rerank": 5
+  },
+  "index": {
+    "type": "faiss_flat_ip",
+    "path": "embeddings/faiss_index.bin",
+    "fallback": "embeddings/embeddings.npy"
+  },
+  "metadata_filters": {
+    "available_fields": [
+      "workflow_step",
+      "criteria",
+      "industry_hint",
+      "confidence",
+      "objection"
+    ],
+    "example_filter": {
+      "workflow_step": "evaluation",
+      "confidence_gte": 0.5
+    }
+  }
+}

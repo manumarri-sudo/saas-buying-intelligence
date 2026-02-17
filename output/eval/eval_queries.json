@@ -1,0 +1,120 @@
+{
+  "name": "saas_buying_intelligence_eval",
+  "version": "1.0.0",
+  "description": "Evaluation queries for testing RAG retrieval and agent reasoning quality.",
+  "queries": [
+    {
+      "id": "eval_001",
+      "query": "What criteria do enterprises use when evaluating CRM software?",
+      "expected_workflow_steps": [
+        "evaluation",
+        "shortlisting"
+      ],
+      "expected_criteria": [
+        "features",
+        "integration",
+        "pricing",
+        "scalability"
+      ],
+      "expected_min_results": 3,
+      "expected_confidence_gte": 0.5
+    },
+    {
+      "id": "eval_002",
+      "query": "What are common objections during SaaS procurement?",
+      "expected_workflow_steps": [
+        "procurement",
+        "negotiation"
+      ],
+      "expected_criteria": [
+        "pricing",
+        "security"
+      ],
+      "expected_min_results": 2,
+      "expected_confidence_gte": 0.4
+    },
+    {
+      "id": "eval_003",
+      "query": "How do healthcare organizations handle security reviews for cloud vendors?",
+      "expected_workflow_steps": [
+        "evaluation"
+      ],
+      "expected_criteria": [
+        "security"
+      ],
+      "expected_industries": [
+        "healthcare"
+      ],
+      "expected_min_results": 1,
+      "expected_confidence_gte": 0.4
+    },
+    {
+      "id": "eval_004",
+      "query": "What does a typical SaaS trial or proof of concept look like?",
+      "expected_workflow_steps": [
+        "trial"
+      ],
+      "expected_criteria": [
+        "features",
+        "usability"
+      ],
+      "expected_min_results": 2,
+      "expected_confidence_gte": 0.5
+    },
+    {
+      "id": "eval_005",
+      "query": "What factors lead companies to switch from one SaaS vendor to another?",
+      "expected_workflow_steps": [
+        "renewal"
+      ],
+      "expected_criteria": [
+        "pricing",
+        "features",
+        "support"
+      ],
+      "expected_objections": [
+        "too_expensive",
+        "missing_feature"
+      ],
+      "expected_min_results": 2,
+      "expected_confidence_gte": 0.4
+    },
+    {
+      "id": "eval_006",
+      "query": "What integration requirements are important in vendor evaluation?",
+      "expected_workflow_steps": [
+        "evaluation",
+        "shortlisting"
+      ],
+      "expected_criteria": [
+        "integration"
+      ],
+      "expected_min_results": 2,
+      "expected_confidence_gte": 0.5
+    },
+    {
+      "id": "eval_007",
+      "query": "How do fintech companies approach SaaS compliance evaluation?",
+      "expected_workflow_steps": [
+        "evaluation"
+      ],
+      "expected_criteria": [
+        "security"
+      ],
+      "expected_industries": [
+        "finance"
+      ],
+      "expected_min_results": 1,
+      "expected_confidence_gte": 0.4
+    },
+    {
+      "id": "eval_008",
+      "query": "What does the enterprise software procurement RFP process involve?",
+      "expected_workflow_steps": [
+        "procurement"
+      ],
+      "expected_min_results": 2,
+      "expected_confidence_gte": 0.5
+    }
+  ]
+}

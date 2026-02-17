@@ -1,0 +1,9 @@
+{
+  "name": "saas_buying_reasoning",
+  "version": "1.0.0",
+  "prompt": "Given the following retrieved SaaS buying intelligence:\n\n{retrieved_context}\n\nUser question: {question}\n\nReason through the following:\n1. What buying stage(s) does this question relate to?\n2. What evaluation criteria are most relevant?\n3. What common objections might arise?\n4. What patterns across industries apply?\n5. What is your confidence in this analysis?\n\nProvide a structured answer with clear reasoning.",
+  "variables": [
+    "retrieved_context",
+    "question"
+  ]
+}

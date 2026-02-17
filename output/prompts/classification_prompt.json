@@ -1,0 +1,8 @@
+{
+  "name": "saas_signal_classifier",
+  "version": "1.0.0",
+  "prompt": "Classify the following text passage into B2B SaaS buying signals.\n\nText: {text}\n\nExtract:\n- decision_context: Brief summary (max 200 chars)\n- criteria: Evaluation factors (comma-separated from: pricing, security, scalability, integration, usability, support, features)\n- objection: Buying blockers (comma-separated from: too_expensive, security_concern, poor_integration, complexity, vendor_lock_in, missing_feature)\n- workflow_step: Buying stage (one of: discovery, evaluation, shortlisting, trial, negotiation, procurement, implementation, renewal)\n- industry_hint: Industry context\n- confidence: 0.0-1.0\n\nReturn valid JSON only.",
+  "variables": [
+    "text"
+  ]
+}
