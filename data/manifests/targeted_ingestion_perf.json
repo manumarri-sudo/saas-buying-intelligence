@@ -1,0 +1,18 @@
+{
+  "pipeline_total_seconds": 889.07,
+  "pipeline_timestamp": "2026-02-18T04:16:34Z",
+  "stages": {
+    "targeted_ingestion": {
+      "start_time": "2026-02-18T04:01:45Z",
+      "metrics": {
+        "files_processed": 118,
+        "files_failed": 0,
+        "files_skipped": 0,
+        "new_records_retained": 40163,
+        "seconds_per_file": 7.53
+      },
+      "elapsed_seconds": 889.07,
+      "end_time": "2026-02-18T04:16:34Z"
+    }
+  }
+}

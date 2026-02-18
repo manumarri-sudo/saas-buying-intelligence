@@ -1,0 +1,16 @@
+{
+  "pipeline_total_seconds": 818.31,
+  "pipeline_timestamp": "2026-02-18T20:47:11Z",
+  "stages": {
+    "filtering": {
+      "start_time": "2026-02-18T20:33:32Z",
+      "metrics": {
+        "records_processed": 96501,
+        "passages_extracted": 65128,
+        "records_per_second": 117.9
+      },
+      "elapsed_seconds": 818.31,
+      "end_time": "2026-02-18T20:47:11Z"
+    }
+  }
+}

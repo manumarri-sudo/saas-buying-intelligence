@@ -1,15 +1,16 @@
 {
   "report": "decision_narrative_gate_before_vs_after",
-  "generated_at": "2026-02-18T08:05:07Z",
+  "generated_at": "2026-02-18T21:27:04Z",
   "before": {
-    "row_count": 2436,
-    "pct_with_decision_verb": 37.3,
-    "pct_with_reasoning_marker": 47.3,
-    "pct_with_both": 18.6,
+    "row_count": 2620,
+    "pct_with_decision_verb": 40.3,
+    "pct_with_reasoning_marker": 49.5,
+    "pct_with_both": 21.9,
     "median_confidence": 0.58,
     "top_domains": {
       "dev.to": 510,
-      "reddit.com": 252,
+      "reddit.com": 258,
+      "news.ycombinator.com": 180,
       "trustradius.com": 80,
       "constructioncoverage.com": 60,
       "boxxe.com": 53,
@@ -20,20 +21,20 @@
       "kayswinburne.co.uk": 15,
       "devblogs.microsoft.com": 15,
       "vegait.co.uk": 14,
-      "stackshare.io": 13,
       "scaleops.co": 13,
-      "tek-analytics.com": 13
+      "stackshare.io": 13
     }
   },
   "after": {
-    "row_count": 2366,
-    "pct_with_decision_verb": 37.9,
-    "pct_with_reasoning_marker": 45.9,
-    "pct_with_both": 18.5,
+    "row_count": 2548,
+    "pct_with_decision_verb": 41.0,
+    "pct_with_reasoning_marker": 48.2,
+    "pct_with_both": 21.9,
     "median_confidence": 0.58,
     "top_domains": {
       "dev.to": 504,
-      "reddit.com": 249,
+      "reddit.com": 255,
+      "news.ycombinator.com": 180,
       "constructioncoverage.com": 60,
       "boxxe.com": 53,
       "terminl.ca": 44,
@@ -44,14 +45,13 @@
       "kayswinburne.co.uk": 15,
       "devblogs.microsoft.com": 15,
       "vegait.co.uk": 14,
-      "stackshare.io": 13,
       "scaleops.co": 13,
-      "tek-analytics.com": 13
+      "stackshare.io": 13
     }
   },
   "drop_reasons": {
-    "passed": 2366,
-    "dropped_bio_or_job_description": 70
+    "passed": 2548,
+    "dropped_bio_or_job_description": 72
   },
   "examples_kept": [
     {
@@ -60,9 +60,9 @@
       "confidence": 0.74
     },
     {
-      "decision_context": "From initial intro call to present day as asatisfied customer. I am not a \"tech\" person -- so from the site being easy to navigate, to the fantastic tech support when I run into an issue, it has been ",
-      "source_url": "https://www.getapp.za.com/reviews/114357/bryt-loan-management-software",
-      "confidence": 0.83
+      "decision_context": "or $246 given that it\u2019s such a bargain.\nCompare that to Kajabi which costs $149, per month!\n\u201d For us it had to do with freeing up our time completely as money can be found in as we sleep. That\u2019s the c",
+      "source_url": "https://restoresupportnetwork.org.uk/convertkit-avec-systeme-io-formulaire-de-commande-en-2-etapes/",
+      "confidence": 0.85
     },
     {
       "decision_context": "heck and to Scott, that was a revelation.\nWith renewed inspiration weeks later, Scott came up with Nothing Toxic. The website published fascinating videos of skateboarding accidents, car wrecks and ma",
@@ -70,14 +70,14 @@
       "confidence": 0.46
     },
     {
-      "decision_context": "1.5 Penta Security Systems\n1.6 Prime Block Technology\n1.7 Spiceware\n1.8 Korea Aerospace Industries\n1.16 Hostway Global Web Solutions\n1.27 Doosan Digital Innovation\n1.28 P & Peo",
-      "source_url": "https://datamagazine.co.uk/35-most-innovative-cloud-data-services-startups-companies-south-korea/",
-      "confidence": 0.41
+      "decision_context": "00 $301-500 $501-1000 $1001+\nWhat's your average monthly power bill?\nEnquiry\nYour privacy is important to us. Please see our \n\u0394\nFind out why we are rated as one of the best solar panels companies in B",
+      "source_url": "https://mcelectrical.com.au/bracken-ridge-solar-panel-installers/",
+      "confidence": 0.47
     },
     {
-      "decision_context": "se bathrooms in a 1940s Christian campground? If you\u2019re Summer and Myron Miller, you turn to Terrazzo\u2122 and TracSafe\u00ae Anti-Slip Sealer to revitalize the much-used areas. \u201cWe purchased the Kentucky prop",
-      "source_url": "https://daichcoatings.com/tag/terrazzo/",
-      "confidence": 0.33
+      "decision_context": "d in a seamless way that did not cause any disruption or downtime, but it required us to plan for and execute two different migration flows to account for every single Messenger user.\nHandling the cha",
+      "source_url": "https://engineering.fb.com/2018/06/26/core-infra/migrating-messenger-storage-to-optimize-performance/",
+      "confidence": 0.66
     }
   ],
   "examples_dropped": [
@@ -94,21 +94,21 @@
       "drop_reason": "failed_gate"
     },
     {
-      "decision_context": "services, with complete publication support for up to 2 journals\nPlatinum Pack\nAn end-to-end package that includes 7 premium services bundled together\nCustom Pack\nFlexibility to choose and pay for the",
-      "source_url": "https://www.editage.com/services/other/journal-selection",
-      "confidence": 0.8,
+      "decision_context": "mailing list faster\nThrive Apprentice\nBuild Professional online courses\nThrive Comments\nMake commenting fun and engaging\nThrive Quiz Builder\nBoost engagement through quizzes\nThrive Ovation\nDisplay tes",
+      "source_url": "https://thrivethemes.com/?idev_id=7650",
+      "confidence": 0.79,
       "drop_reason": "failed_gate"
     },
     {
-      "decision_context": "am\nServices\nSAP Datasphere (DSP) Enablement Service\nSAP Analytics Cloud (SAC) Enablement Service\nArtificial Intelligence & Machine Learning\nCloud Transformation\nAnalytics and Planning\nStrategy and Adv",
-      "source_url": "https://tek-analytics.com/category/blog/page/3/",
-      "confidence": 0.49,
+      "decision_context": "earch\nContact\nToggle Menu\nArts | Featured\nArts website navigation redesign\nImproving UX through data-driven insights\nProject for:\nDallas Opera\nFor this project, we studied user habits on the Dallas Op",
+      "source_url": "https://standardbeagle.com/case-studies/arts-website-navigation-redesign/",
+      "confidence": 0.79,
       "drop_reason": "failed_gate"
     },
     {
-      "decision_context": "My bedroom window was broken by a stone thrown from outside. I called my property manager who right away sent a window tech to replace the broken one. Great service!\nHelp others: Click Here to send re",
-      "source_url": "https://threebestrated.ca/property-management-companies-in-vancouver-bc",
-      "confidence": 0.51,
+      "decision_context": "They are highly customizable, long-lasting and after preparation are any easy and trustworthy install. Some advantages include:\nNo Maintenance\nNo Risk for Mold or Water Damage\nCost Solution\nFaster Bui",
+      "source_url": "https://terrapinsteelbuildings.com/steel-buildings/4-car-vertical-garage/",
+      "confidence": 0.93,
       "drop_reason": "failed_gate"
     }
   ],

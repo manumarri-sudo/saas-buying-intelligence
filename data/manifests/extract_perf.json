@@ -1,0 +1,20 @@
+{
+  "pipeline_total_seconds": 247.58,
+  "pipeline_timestamp": "2026-02-18T21:27:04Z",
+  "stages": {
+    "extraction": {
+      "start_time": "2026-02-18T21:22:56Z",
+      "metrics": {
+        "passages_input": 65128,
+        "rows_pre_gate": 2620,
+        "rows_post_gate": 2548,
+        "rows_dropped_by_gate": 72,
+        "rows_extracted": 818,
+        "llm_cache_hits": 0,
+        "llm_cache_misses": 0
+      },
+      "elapsed_seconds": 247.58,
+      "end_time": "2026-02-18T21:27:04Z"
+    }
+  }
+}
