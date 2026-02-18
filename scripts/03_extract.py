@@ -1,18 +1,27 @@
 #!/usr/bin/env python3
 """
-Stage 3: Extraction (with LLM caching)
+Stage 3: Extraction (with strict decision-narrative gate)
 
 Reads scored passages, applies rule-based extraction to produce
-structured rows. Optionally uses LLM fallback for low-confidence rows
-with disk-backed caching to avoid re-processing identical snippets.
+structured rows. THEN applies the hard decision-narrative gate:
+  - Every row MUST contain a decision verb AND a reasoning marker
+  - Navigation noise and bio/job content is stripped first
+  - No bypass via confidence scoring
+
+Also produces:
+  - debug_kept_vs_dropped.csv (50 kept + 50 dropped examples)
+  - decision_narrative_report.json (BEFORE vs AFTER metrics)
 """
 
+import csv
 import gzip
 import json
 import logging
 import os
+import re
 import sys
 import time
+from collections import Counter
 from pathlib import Path
 
 import pandas as pd
@@ -22,7 +31,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from lib.config_loader import get_config, resolve_path
 from lib.extractor import extract_row, ExtractedRow
 from lib.llm_cache import LLMCache
+from lib.narrative_gate import (
+    passes_decision_narrative_gate,
+    classify_drop_reason,
+    DropReason,
+)
 from lib.perf_logger import PerfLogger
+from lib.text_cleaner import full_clean, clean_navigation_text, is_bio_or_job_content, is_promotional_content
 
 logging.basicConfig(
     level=logging.INFO,
@@ -201,6 +216,232 @@ def llm_classify_batch(
     return rows
 
 
+def apply_decision_narrative_gate(
+    rows: list[dict],
+) -> tuple[list[dict], list[dict], dict]:
+    """
+    Apply strict decision-narrative gate to extracted rows.
+
+    Returns:
+      (kept_rows, dropped_rows, drop_stats)
+
+    The gate is absolute: a row must have BOTH a decision verb
+    AND a reasoning marker in its decision_context to survive.
+    """
+    kept = []
+    dropped = []
+    drop_counts = Counter()
+
+    for row in rows:
+        dc = str(row.get("decision_context", ""))
+
+        # Step 1: Full text cleaning (nav artifacts + structural noise)
+        cleaned_dc, clean_drop = full_clean(dc)
+
+        # Step 2: Check if text cleaner flagged it for drop
+        if clean_drop is not None:
+            row["_drop_reason"] = clean_drop
+            dropped.append(row)
+            drop_counts[clean_drop] += 1
+            continue
+
+        # Step 3: Check for navigation noise (too short after cleaning)
+        if len(cleaned_dc.strip()) < 30:
+            row["_drop_reason"] = DropReason.NAVIGATION_NOISE.value
+            dropped.append(row)
+            drop_counts[DropReason.NAVIGATION_NOISE.value] += 1
+            continue
+
+        # Step 4: Update decision_context with cleaned version
+        row["decision_context"] = cleaned_dc
+
+        # Step 5: Apply the hard decision-narrative gate
+        reason = classify_drop_reason(cleaned_dc)
+
+        if reason == DropReason.PASSED:
+            kept.append(row)
+            drop_counts[DropReason.PASSED.value] += 1
+        else:
+            row["_drop_reason"] = reason.value
+            dropped.append(row)
+            drop_counts[reason.value] += 1
+
+    logger.info(f"Decision narrative gate: {len(kept)} kept, {len(dropped)} dropped")
+    for reason, count in sorted(drop_counts.items()):
+        logger.info(f"  {reason}: {count}")
+
+    return kept, dropped, dict(drop_counts)
+
+
+def write_debug_csv(
+    kept: list[dict],
+    dropped: list[dict],
+    output_dir: Path,
+) -> Path:
+    """
+    Write debug artifact with 50 kept + 50 dropped examples.
+    """
+    import random
+    random.seed(42)
+
+    kept_sample = random.sample(kept, min(50, len(kept)))
+    dropped_sample = random.sample(dropped, min(50, len(dropped)))
+
+    csv_path = output_dir / "debug_kept_vs_dropped.csv"
+    with open(csv_path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow([
+            "status", "source_url", "decision_context", "drop_reason",
+        ])
+
+        for row in kept_sample:
+            writer.writerow([
+                "KEPT",
+                row.get("source_url", ""),
+                row.get("decision_context", "")[:300],
+                "",
+            ])
+
+        for row in dropped_sample:
+            writer.writerow([
+                "DROPPED",
+                row.get("source_url", ""),
+                row.get("decision_context", "")[:300],
+                row.get("_drop_reason", "unknown"),
+            ])
+
+    logger.info(f"Debug CSV written to {csv_path} "
+                f"({len(kept_sample)} kept + {len(dropped_sample)} dropped)")
+    return csv_path
+
+
+def write_before_after_report(
+    before_rows: list[dict],
+    after_rows: list[dict],
+    drop_stats: dict,
+    output_dir: Path,
+) -> Path:
+    """
+    Write BEFORE vs AFTER decision_narrative_report.json.
+    """
+    from lib.narrative_gate import (
+        DECISION_VERB_RE,
+        REASONING_MARKER_RE,
+    )
+
+    def compute_metrics(rows: list[dict]) -> dict:
+        if not rows:
+            return {
+                "row_count": 0,
+                "pct_with_decision_verb": 0,
+                "pct_with_reasoning_marker": 0,
+                "pct_with_both": 0,
+                "median_confidence": 0,
+                "top_domains": {},
+            }
+
+        has_verb = sum(
+            1 for r in rows
+            if DECISION_VERB_RE.search(str(r.get("decision_context", "")))
+        )
+        has_reason = sum(
+            1 for r in rows
+            if REASONING_MARKER_RE.search(str(r.get("decision_context", "")))
+        )
+        has_both = sum(
+            1 for r in rows
+            if DECISION_VERB_RE.search(str(r.get("decision_context", "")))
+            and REASONING_MARKER_RE.search(str(r.get("decision_context", "")))
+        )
+
+        confidences = [r.get("confidence", 0) for r in rows]
+        confidences.sort()
+        median_conf = confidences[len(confidences) // 2] if confidences else 0
+
+        # Top domains
+        domain_counter = Counter()
+        for r in rows:
+            url = str(r.get("source_url", ""))
+            domain = re.sub(r'^https?://(www\.)?', '', url).split('/')[0]
+            if domain:
+                domain_counter[domain] += 1
+
+        top_domains = dict(domain_counter.most_common(15))
+
+        return {
+            "row_count": len(rows),
+            "pct_with_decision_verb": round(100 * has_verb / len(rows), 1),
+            "pct_with_reasoning_marker": round(100 * has_reason / len(rows), 1),
+            "pct_with_both": round(100 * has_both / len(rows), 1),
+            "median_confidence": round(median_conf, 3),
+            "top_domains": top_domains,
+        }
+
+    before_metrics = compute_metrics(before_rows)
+    after_metrics = compute_metrics(after_rows)
+
+    # Sample kept rows
+    import random
+    random.seed(42)
+    kept_examples = []
+    sample_kept = random.sample(after_rows, min(5, len(after_rows)))
+    for r in sample_kept:
+        kept_examples.append({
+            "decision_context": str(r.get("decision_context", ""))[:200],
+            "source_url": r.get("source_url", ""),
+            "confidence": r.get("confidence", 0),
+        })
+
+    # Sample dropped rows
+    dropped_list = [r for r in before_rows if r not in after_rows]
+    dropped_examples = []
+    sample_dropped = random.sample(dropped_list, min(5, len(dropped_list)))
+    for r in sample_dropped:
+        dropped_examples.append({
+            "decision_context": str(r.get("decision_context", ""))[:200],
+            "source_url": r.get("source_url", ""),
+            "confidence": r.get("confidence", 0),
+            "drop_reason": r.get("_drop_reason", "failed_gate"),
+        })
+
+    report = {
+        "report": "decision_narrative_gate_before_vs_after",
+        "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "before": before_metrics,
+        "after": after_metrics,
+        "drop_reasons": drop_stats,
+        "examples_kept": kept_examples,
+        "examples_dropped": dropped_examples,
+        "gate_rules": {
+            "decision_verbs": [
+                "chose", "choose", "selected", "select", "evaluated", "evaluate",
+                "shortlisted", "shortlist", "compared", "compare", "trialed",
+                "trial", "piloted", "pilot", "adopted", "adopt", "purchased",
+                "purchase", "procured", "procurement", "rejected", "reject",
+                "replaced", "replace", "switched", "switch", "migrated", "migrate",
+            ],
+            "reasoning_markers": [
+                "because", "due to", "since", "so that", "therefore",
+                "as a result", "needed", "required", "requirement",
+                "must have", "deciding factor", "dealbreaker",
+                "concern", "concerns", "issue", "issues",
+                "challenge", "challenges", "risk", "risks",
+                "too expensive", "pricing", "security review",
+                "compliance", "integration", "vendor lock-in",
+                "onboarding", "implementation", "support",
+            ],
+            "enforcement": "HARD GATE: both required, no bypass via scoring",
+        },
+    }
+
+    report_path = output_dir / "decision_narrative_report.json"
+    with open(report_path, "w") as f:
+        json.dump(report, f, indent=2, default=str)
+
+    logger.info(f"BEFORE vs AFTER report written to {report_path}")
+    return report_path
+
+
 def main():
     cfg = get_config()
     extract_cfg = cfg["extraction"]
@@ -209,6 +450,9 @@ def main():
     filtered_dir = resolve_path("data/filtered")
     extracted_dir = resolve_path("data/extracted")
     extracted_dir.mkdir(parents=True, exist_ok=True)
+
+    output_dir = resolve_path("output")
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     perf = PerfLogger()
     perf.start_stage("extraction")
@@ -222,7 +466,7 @@ def main():
         logger.error("No passages to extract from. Exiting.")
         sys.exit(1)
 
-    # Rule-based extraction
+    # ── Step 1: Rule-based extraction ─────────────────────────────────
     logger.info("=== Rule-Based Extraction ===")
     rows, low_conf_passages = rule_based_extraction(passages, max_text_length)
     logger.info(
@@ -230,18 +474,39 @@ def main():
         f"{len(low_conf_passages)} low-confidence passages"
     )
 
-    # LLM fallback (optional)
+    # ── Step 2: LLM fallback (optional) ──────────────────────────────
     llm_rows = []
     if extract_cfg["llm_fallback"]["enabled"]:
         logger.info("=== LLM Fallback Classification ===")
         llm_rows = llm_classify_batch(low_conf_passages, cfg, cache)
         rows.extend(llm_rows)
 
-    # Build DataFrame
-    df = pd.DataFrame(rows)
+    # Save BEFORE state (pre-gate) for comparison
+    before_rows = [dict(r) for r in rows]  # deep copy
+    logger.info(f"Pre-gate row count: {len(before_rows)}")
+
+    # ── Step 3: STRICT Decision-Narrative Gate ────────────────────────
+    logger.info("=== Applying Decision-Narrative Gate (HARD FILTER) ===")
+    kept_rows, dropped_rows, drop_stats = apply_decision_narrative_gate(rows)
+
+    # Remove internal _drop_reason from dropped rows for the final data
+    # (keep it for debug CSV only)
+    for row in kept_rows:
+        row.pop("_drop_reason", None)
+
+    # ── Step 4: Write debug artifact ─────────────────────────────────
+    logger.info("=== Writing Debug Artifact ===")
+    write_debug_csv(kept_rows, dropped_rows, output_dir)
+
+    # ── Step 5: Write BEFORE vs AFTER report ─────────────────────────
+    logger.info("=== Writing BEFORE vs AFTER Report ===")
+    write_before_after_report(before_rows, kept_rows, drop_stats, output_dir)
+
+    # ── Step 6: Build DataFrame from KEPT rows only ──────────────────
+    df = pd.DataFrame(kept_rows)
 
     if df.empty:
-        logger.warning("No rows extracted. Creating empty output.")
+        logger.warning("No rows passed the decision-narrative gate. Creating empty output.")
         df = pd.DataFrame(columns=[
             "decision_context", "criteria", "objection",
             "workflow_step", "industry_hint", "confidence",
@@ -265,7 +530,11 @@ def main():
     stats = {
         "stage": "extraction",
         "passages_input": len(passages),
-        "rows_rule_based": len(rows) - len(llm_rows),
+        "rows_pre_gate": len(before_rows),
+        "rows_post_gate": len(kept_rows),
+        "rows_dropped_by_gate": len(dropped_rows),
+        "drop_reasons": drop_stats,
+        "rows_rule_based": len(before_rows) - len(llm_rows),
         "rows_llm_fallback": len(llm_rows),
         "rows_total": len(df),
         "low_confidence_count": len(
@@ -294,12 +563,25 @@ def main():
 
     perf.end_stage()
     perf.record("passages_input", len(passages))
+    perf.record("rows_pre_gate", len(before_rows))
+    perf.record("rows_post_gate", len(kept_rows))
+    perf.record("rows_dropped_by_gate", len(dropped_rows))
     perf.record("rows_extracted", len(df))
     perf.record("llm_cache_hits", llm_cache_stats["hits"])
     perf.record("llm_cache_misses", llm_cache_stats["misses"])
     perf.save_report(resolve_path("data/manifests/extract_perf.json"))
 
     logger.info(f"Extraction complete. Stats saved to {stats_path}")
+
+    # Print gate enforcement summary
+    logger.info("=" * 60)
+    logger.info("DECISION-NARRATIVE GATE ENFORCEMENT SUMMARY")
+    logger.info(f"  Pre-gate rows:  {len(before_rows)}")
+    logger.info(f"  Post-gate rows: {len(kept_rows)}")
+    logger.info(f"  Dropped:        {len(dropped_rows)} ({100*len(dropped_rows)/max(len(before_rows),1):.1f}%)")
+    logger.info(f"  Gate is HARD: no row can bypass without both decision verb + reasoning marker")
+    logger.info("=" * 60)
+
     return len(df)
 
 

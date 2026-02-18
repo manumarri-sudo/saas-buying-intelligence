@@ -1,0 +1,182 @@
+{
+  "report": "decision_narrative_gate_before_vs_after",
+  "generated_at": "2026-02-18T03:43:51Z",
+  "before": {
+    "row_count": 18015,
+    "pct_with_decision_verb": 32.4,
+    "pct_with_reasoning_marker": 40.2,
+    "pct_with_both": 8.9,
+    "median_confidence": 0.66,
+    "top_domains": {
+      "apexapps.oracle.com": 500,
+      "tipalti.com": 143,
+      "cdata.com": 135,
+      "stripe.com": 130,
+      "cutshort.io": 119,
+      "sdtimes.com": 117,
+      "sortd.com": 112,
+      "lambdatest.com": 108,
+      "aws.amazon.com": 101,
+      "oracle.com": 90,
+      "saasscout.com": 86,
+      "en-gb.workplace.com": 84,
+      "tms-outsource.com": 77,
+      "dell.com": 70,
+      "researchgate.net": 70
+    }
+  },
+  "after": {
+    "row_count": 1543,
+    "pct_with_decision_verb": 100.0,
+    "pct_with_reasoning_marker": 100.0,
+    "pct_with_both": 100.0,
+    "median_confidence": 0.71,
+    "top_domains": {
+      "dell.com": 24,
+      "de.shi.com": 19,
+      "shi.com": 18,
+      "stripe.com": 16,
+      "ironsoftware.com": 16,
+      "tipalti.com": 15,
+      "aws.amazon.com": 15,
+      "azure.microsoft.com": 14,
+      "en-gb.workplace.com": 14,
+      "spendflo.com": 11,
+      "globalyo.com": 11,
+      "ironpdf.com": 11,
+      "id-id.workplace.com": 10,
+      "elest.io": 10,
+      "thehackernews.com": 10
+    }
+  },
+  "drop_reasons": {
+    "dropped_missing_decision_verb": 12057,
+    "dropped_navigation_noise": 74,
+    "dropped_missing_reason_marker": 4154,
+    "passed": 1543,
+    "dropped_bio_or_job_description": 187
+  },
+  "examples_kept": [
+    {
+      "decision_context": "D Tech Service \u2014 Field Services\nGet ongoing support in the field from our mobile field service techs. Our field services include:\nTurnkey VFD retrofits: uninstall old or damaged equipment and replace ",
+      "source_url": "https://dtechservice.com/capabilities/",
+      "confidence": 0.75
+    },
+    {
+      "decision_context": "Thanks for submitting! Our Solutions\nRFQ Automator\nProcurement Electronic Components\nIOT Plaform Manager\nProduct Compliance Monitoring\nAir Quality Monitoring\nCompliance Monitoring\nSemi conductor sourc",
+      "source_url": "https://www.basedig.com/mesure-qualite-air/036956aa-dcf3-4970-8dfd-6c86b2c4ef2d/beville-le-comte",
+      "confidence": 0.74
+    },
+    {
+      "decision_context": "PRODUCT DETAILS \u201c*\u201d Required Fields Are Compulsory\nNeed Parts By* Immediate Buy Within 1 Week Within 2 Week Within 4 Week Within 8 Week Bid Only Life Time Buy AOG\nCONTACT INFORMATION\nSelect Company Ty",
+      "source_url": "https://www.purchasingunion.com/aviation/rfq/cessna-aircraft/0411699/",
+      "confidence": 0.52
+    },
+    {
+      "decision_context": "you can click here to download the PDF file. Pricing Notes:\nAll Prices are Inclusive of GST\nIf your existing SG appliance does not have an active subscription or license, you will need to purchase a n",
+      "source_url": "https://www.enterpriseav.com.au/SG-Webserver-Protection-Renewal.asp",
+      "confidence": 0.71
+    },
+    {
+      "decision_context": "Big Compute Architecture Style\nAutoscaling best practices\nImplementation checklist\nAs you're looking to implement your own HPC solution on Azure, ensure you're reviewed the following topics:\nChoose th",
+      "source_url": "https://learn.microsoft.com/en-us/azure/architecture/topics/high-performance-computing",
+      "confidence": 0.32
+    }
+  ],
+  "examples_dropped": [
+    {
+      "decision_context": "coli (STEC):\nSalmonella Verification Testing Program Monthly Posting\nChemical Residues and Contaminants\nHumane Handling Data\nLaboratory Sampling Data\nEgg Product Testing, Years 1995-2017\nPublic Health",
+      "source_url": "https://www.fsis.usda.gov/es/node/3800",
+      "confidence": 0.46,
+      "drop_reason": "failed_gate"
+    },
+    {
+      "decision_context": "He has played a key role in adding MLOps practices into the company\u2019s setup. Rahul\u2019s expertise in cloud platforms, infrastructure as code, and monitoring has made the deployment and management of mach",
+      "source_url": "https://brollyai.com/future-and-scope-of-mlops-careers-in-india/",
+      "confidence": 0.46,
+      "drop_reason": "failed_gate"
+    },
+    {
+      "decision_context": "LT Browser\nNext-gen browser to build, test & debug responsive websites\nTest Analytics\nLambdaTest's AI-Powered Test Analytics & Observability Suite\nDigital Experience Testing\nUnified testing cloud to h",
+      "source_url": "https://www.lambdatest.com/automation-testing-advisor/selenium/methods/com.paypal.selion.mobile.sample.pages.TapPage.getSingleTapTextField",
+      "confidence": 0.33,
+      "drop_reason": "failed_gate"
+    },
+    {
+      "decision_context": "Get Custom Pricing\nSee what Acumatica can do for you. Take a 4-minute product tour Schedule a demo\nAcumatica Product Editions\nAcumatica SaaS FAQ\nAwards and User Reviews",
+      "source_url": "https://www.acumatica.com/erp-solutions-by-roles/erp-for-it-lead/",
+      "confidence": 0.82,
+      "drop_reason": "failed_gate"
+    },
+    {
+      "decision_context": "Consider Organizational Scale\nThe size and structure of your organization dictate the type of BI tool you should choose:\nStartups: Often benefit from flexible and easy-to-implement solutions. Large En",
+      "source_url": "https://techextensor.com/blogs/data-driven-decision-making-how-analytics-is-reshaping-business-strategy",
+      "confidence": 0.83,
+      "drop_reason": "failed_gate"
+    }
+  ],
+  "gate_rules": {
+    "decision_verbs": [
+      "chose",
+      "choose",
+      "selected",
+      "select",
+      "evaluated",
+      "evaluate",
+      "shortlisted",
+      "shortlist",
+      "compared",
+      "compare",
+      "trialed",
+      "trial",
+      "piloted",
+      "pilot",
+      "adopted",
+      "adopt",
+      "purchased",
+      "purchase",
+      "procured",
+      "procurement",
+      "rejected",
+      "reject",
+      "replaced",
+      "replace",
+      "switched",
+      "switch",
+      "migrated",
+      "migrate"
+    ],
+    "reasoning_markers": [
+      "because",
+      "due to",
+      "since",
+      "so that",
+      "therefore",
+      "as a result",
+      "needed",
+      "required",
+      "requirement",
+      "must have",
+      "deciding factor",
+      "dealbreaker",
+      "concern",
+      "concerns",
+      "issue",
+      "issues",
+      "challenge",
+      "challenges",
+      "risk",
+      "risks",
+      "too expensive",
+      "pricing",
+      "security review",
+      "compliance",
+      "integration",
+      "vendor lock-in",
+      "onboarding",
+      "implementation",
+      "support"
+    ],
+    "enforcement": "HARD GATE: both required, no bypass via scoring"
+  }
+}

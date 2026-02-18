@@ -7,12 +7,13 @@
 #   ./run.sh                  # Run full pipeline
 #   ./run.sh --stage 3        # Run from stage 3 onward
 #   ./run.sh --only 2         # Run only stage 2
+#   ./run.sh --refilter       # Re-run stages 3-5 only (no re-ingestion)
 #   ./run.sh --install        # Install dependencies first
 #
 # Stages:
 #   1 = Ingestion (Common Crawl + licensed data)
 #   2 = Filtering (keyword scoring)
-#   3 = Extraction (structured row creation)
+#   3 = Extraction (structured row creation + decision-narrative gate)
 #   4 = Validation (dedup, PII, quality)
 #   5 = Packaging (assemble module)
 # ============================================================
@@ -50,17 +51,20 @@ fail() { echo -e "${RED}[$(date '+%H:%M:%S')] ✗${NC} $1"; exit 1; }
 START_STAGE=1
 ONLY_STAGE=0
 INSTALL=0
+REFILTER=0
 
 while [[ $# -gt 0 ]]; do
     case $1 in
         --stage)  START_STAGE="$2"; shift 2 ;;
         --only)   ONLY_STAGE="$2"; shift 2 ;;
         --install) INSTALL=1; shift ;;
+        --refilter) REFILTER=1; shift ;;
         -h|--help)
-            echo "Usage: ./run.sh [--stage N] [--only N] [--install]"
-            echo "  --stage N   Start from stage N (1-5)"
-            echo "  --only N    Run only stage N"
-            echo "  --install   Install Python dependencies first"
+            echo "Usage: ./run.sh [--stage N] [--only N] [--refilter] [--install]"
+            echo "  --stage N    Start from stage N (1-5)"
+            echo "  --only N     Run only stage N"
+            echo "  --refilter   Re-run stages 3-5 only (uses existing scored passages)"
+            echo "  --install    Install Python dependencies first"
             exit 0
             ;;
         *) fail "Unknown argument: $1" ;;
@@ -84,6 +88,14 @@ echo "=================================================="
 echo "  B2B SaaS Buying Intelligence Pipeline"
 echo "=================================================="
 echo ""
+
+# Handle --refilter shortcut
+if [[ $REFILTER -eq 1 ]]; then
+    log "REFILTER MODE: Running stages 3-5 on existing scored passages"
+    log "(Skipping ingestion and filtering — using existing data/filtered/scored_passages.json.gz)"
+    echo ""
+    START_STAGE=3
+fi
 
 run_stage() {
     local num=$1
@@ -129,6 +141,11 @@ fi
 echo ""
 log "Next steps:"
 echo "  1. Review output/quality_report.json"
-echo "  2. Generate embeddings:  python output/embeddings/generate_embeddings.py"
-echo "  3. Run evaluation:       python output/eval/run_eval.py"
-echo "  4. See output/README.md for integration guides"
+echo "  2. Review output/decision_narrative_report.json"
+echo "  3. Review output/debug_kept_vs_dropped.csv"
+echo "  4. Generate embeddings:  python output/embeddings/generate_embeddings.py"
+echo "  5. Run evaluation:       python output/eval/run_eval.py"
+echo "  6. See output/README.md for integration guides"
+echo ""
+echo "To re-run only the extraction/validation/packaging stages:"
+echo "  ./run.sh --refilter"
