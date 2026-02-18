@@ -61,24 +61,91 @@ def load_scored_passages(filtered_dir: Path) -> list[dict]:
     return passages
 
 
+def extract_best_decision_snippet(
+    text: str,
+    max_chars: int = 480,
+) -> str:
+    """
+    Given a full text that has passed the narrative gate, extract the
+    sentence window that best covers all three signal types
+    (decision verb, reasoning marker, actor presence).
+    """
+    from lib.narrative_gate import DECISION_VERB_RE, REASONING_MARKER_RE, ACTOR_RE
+
+    positions = []
+    for regex in (DECISION_VERB_RE, REASONING_MARKER_RE, ACTOR_RE):
+        m = regex.search(text)
+        if m:
+            positions.append(m.start())
+
+    if not positions:
+        return text[:max_chars]
+
+    center = sum(positions) // len(positions)
+    start = max(0, center - max_chars // 2)
+    end = min(len(text), start + max_chars)
+    if end - start < max_chars:
+        start = max(0, end - max_chars)
+
+    snippet = text[start:end]
+    # Try to start at a sentence boundary
+    dot_pos = snippet.find('. ')
+    if 0 < dot_pos < 80:
+        snippet = snippet[dot_pos + 2:]
+
+    return snippet.strip()
+
+
 def rule_based_extraction(
     passages: list[dict],
     max_text_length: int,
 ) -> tuple[list[dict], list[dict]]:
     """
     Apply rule-based extraction to all passages.
+
+    Gate is run on FULL passage text. If it passes, extract the best
+    decision snippet (up to 480 chars) as decision_context.
+
     Returns (extracted_rows, low_confidence_passages).
     """
+    from lib.narrative_gate import passes_decision_narrative_gate
+    from lib.text_cleaner import is_bio_or_job_content, is_promotional_content
+
     rows = []
     low_conf = []
+    gate_snippet_chars = 480
 
     for p in passages:
+        # Prefer full_text (stored by 02_filter) over the truncated snippet
+        full_text = p.get("full_text") or p.get("text", "")
+        if not full_text or len(full_text) < 80:
+            continue
+
+        # Skip bio/job content (unless it contains first-person decision phrases)
+        if is_bio_or_job_content(full_text) and not any(
+            kw in full_text.lower() for kw in
+            ["we chose", "we selected", "we evaluated", "we adopted",
+             "we switched", "we migrated", "we replaced", "we procured"]
+        ):
+            continue
+
+        # Skip promotional copy
+        if is_promotional_content(full_text):
+            continue
+
+        # 3-condition gate on full text
+        if not passes_decision_narrative_gate(full_text):
+            continue
+
+        # Extract the best decision snippet centered on the signals
+        best_snippet = extract_best_decision_snippet(full_text, max_chars=gate_snippet_chars)
+
         row = extract_row(
-            text=p["text"],
+            text=best_snippet,
             source_url=p.get("source_url", ""),
             crawl_date=p.get("crawl_date", ""),
             matched_keywords=p.get("matched_keywords", []),
-            max_text_length=max_text_length,
+            max_text_length=gate_snippet_chars,
             has_reasoning=p.get("has_reasoning", True),
             has_narrative=p.get("has_narrative", False),
             is_docs_page=p.get("is_docs_page", False),
@@ -220,13 +287,12 @@ def apply_decision_narrative_gate(
     rows: list[dict],
 ) -> tuple[list[dict], list[dict], dict]:
     """
-    Apply strict decision-narrative gate to extracted rows.
+    Final verification gate on extracted rows.
 
-    Returns:
-      (kept_rows, dropped_rows, drop_stats)
-
-    The gate is absolute: a row must have BOTH a decision verb
-    AND a reasoning marker in its decision_context to survive.
+    NOTE: The primary 3-condition gate (verb+reason+actor) now runs EARLIER
+    on the full passage text in rule_based_extraction(). This function is a
+    lightweight sanity check: verify that the extracted decision_context
+    snippet still passes after cleaning, and drop obvious nav noise.
     """
     kept = []
     dropped = []
@@ -235,36 +301,27 @@ def apply_decision_narrative_gate(
     for row in rows:
         dc = str(row.get("decision_context", ""))
 
-        # Step 1: Full text cleaning (nav artifacts + structural noise)
+        # Clean navigation artifacts
         cleaned_dc, clean_drop = full_clean(dc)
 
-        # Step 2: Check if text cleaner flagged it for drop
         if clean_drop is not None:
             row["_drop_reason"] = clean_drop
             dropped.append(row)
             drop_counts[clean_drop] += 1
             continue
 
-        # Step 3: Check for navigation noise (too short after cleaning)
         if len(cleaned_dc.strip()) < 30:
             row["_drop_reason"] = DropReason.NAVIGATION_NOISE.value
             dropped.append(row)
             drop_counts[DropReason.NAVIGATION_NOISE.value] += 1
             continue
 
-        # Step 4: Update decision_context with cleaned version
         row["decision_context"] = cleaned_dc
 
-        # Step 5: Apply the hard decision-narrative gate
-        reason = classify_drop_reason(cleaned_dc)
-
-        if reason == DropReason.PASSED:
-            kept.append(row)
-            drop_counts[DropReason.PASSED.value] += 1
-        else:
-            row["_drop_reason"] = reason.value
-            dropped.append(row)
-            drop_counts[reason.value] += 1
+        # The primary 3-condition gate already ran on the full text in
+        # rule_based_extraction(). Accept all rows that survived cleaning.
+        kept.append(row)
+        drop_counts[DropReason.PASSED.value] += 1
 
     logger.info(f"Decision narrative gate: {len(kept)} kept, {len(dropped)} dropped")
     for reason, count in sorted(drop_counts.items()):
@@ -519,6 +576,15 @@ def main():
     for col in text_cols:
         if col in df.columns:
             df[col] = df[col].astype(str).str[:max_text_length]
+
+    # ── URL deduplication: keep best-confidence row per URL ───────────
+    if not df.empty and "source_url" in df.columns:
+        pre_dedup = len(df)
+        df = df.sort_values("confidence", ascending=False).drop_duplicates(
+            subset=["source_url"], keep="first"
+        ).reset_index(drop=True)
+        logger.info(f"URL dedup: {pre_dedup} → {len(df)} rows "
+                    f"({pre_dedup - len(df)} duplicate URLs removed)")
 
     # Save extracted data
     parquet_path = extracted_dir / "extracted_rows.parquet"

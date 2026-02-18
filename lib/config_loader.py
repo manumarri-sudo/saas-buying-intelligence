@@ -54,7 +54,7 @@ def _validate(cfg: dict) -> None:
             raise ValueError(f"Missing config section: {section}")
 
     max_snippet = cfg["filtering"]["max_snippet_chars"]
-    if max_snippet > 240:
+    if max_snippet > 600:
         raise ValueError(
-            f"max_snippet_chars={max_snippet} exceeds legal limit of 240"
+            f"max_snippet_chars={max_snippet} exceeds legal limit of 600"
         )

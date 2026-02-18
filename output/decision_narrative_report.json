@@ -1,117 +1,114 @@
 {
   "report": "decision_narrative_gate_before_vs_after",
-  "generated_at": "2026-02-18T03:43:51Z",
+  "generated_at": "2026-02-18T05:51:51Z",
   "before": {
-    "row_count": 18015,
-    "pct_with_decision_verb": 32.4,
-    "pct_with_reasoning_marker": 40.2,
-    "pct_with_both": 8.9,
-    "median_confidence": 0.66,
+    "row_count": 1574,
+    "pct_with_decision_verb": 32.3,
+    "pct_with_reasoning_marker": 39.4,
+    "pct_with_both": 11.4,
+    "median_confidence": 0.53,
     "top_domains": {
-      "apexapps.oracle.com": 500,
-      "tipalti.com": 143,
-      "cdata.com": 135,
-      "stripe.com": 130,
-      "cutshort.io": 119,
-      "sdtimes.com": 117,
-      "sortd.com": 112,
-      "lambdatest.com": 108,
-      "aws.amazon.com": 101,
-      "oracle.com": 90,
-      "saasscout.com": 86,
-      "en-gb.workplace.com": 84,
-      "tms-outsource.com": 77,
-      "dell.com": 70,
-      "researchgate.net": 70
+      "constructioncoverage.com": 60,
+      "boxxe.com": 53,
+      "terminl.ca": 44,
+      "sortd.com": 29,
+      "venturesmarter.com": 21,
+      "cobblestonesoftware.com": 16,
+      "kayswinburne.co.uk": 15,
+      "devblogs.microsoft.com": 15,
+      "vegait.co.uk": 14,
+      "stackshare.io": 13,
+      "scaleops.co": 13,
+      "tek-analytics.com": 13,
+      "aalpha.net": 13,
+      "healthcostinstitute.org": 13,
+      "blaize.tech": 13
     }
   },
   "after": {
-    "row_count": 1543,
-    "pct_with_decision_verb": 100.0,
-    "pct_with_reasoning_marker": 100.0,
-    "pct_with_both": 100.0,
-    "median_confidence": 0.71,
+    "row_count": 1573,
+    "pct_with_decision_verb": 31.5,
+    "pct_with_reasoning_marker": 37.8,
+    "pct_with_both": 10.4,
+    "median_confidence": 0.53,
     "top_domains": {
-      "dell.com": 24,
-      "de.shi.com": 19,
-      "shi.com": 18,
-      "stripe.com": 16,
-      "ironsoftware.com": 16,
-      "tipalti.com": 15,
-      "aws.amazon.com": 15,
-      "azure.microsoft.com": 14,
-      "en-gb.workplace.com": 14,
-      "spendflo.com": 11,
-      "globalyo.com": 11,
-      "ironpdf.com": 11,
-      "id-id.workplace.com": 10,
-      "elest.io": 10,
-      "thehackernews.com": 10
+      "constructioncoverage.com": 60,
+      "boxxe.com": 53,
+      "terminl.ca": 44,
+      "sortd.com": 29,
+      "venturesmarter.com": 21,
+      "cobblestonesoftware.com": 16,
+      "kayswinburne.co.uk": 15,
+      "devblogs.microsoft.com": 15,
+      "vegait.co.uk": 14,
+      "stackshare.io": 13,
+      "scaleops.co": 13,
+      "tek-analytics.com": 13,
+      "aalpha.net": 13,
+      "healthcostinstitute.org": 13,
+      "blaize.tech": 13
     }
   },
   "drop_reasons": {
-    "dropped_missing_decision_verb": 12057,
-    "dropped_navigation_noise": 74,
-    "dropped_missing_reason_marker": 4154,
-    "passed": 1543,
-    "dropped_bio_or_job_description": 187
+    "passed": 1573,
+    "dropped_bio_or_job_description": 1
   },
   "examples_kept": [
     {
-      "decision_context": "D Tech Service \u2014 Field Services\nGet ongoing support in the field from our mobile field service techs. Our field services include:\nTurnkey VFD retrofits: uninstall old or damaged equipment and replace ",
-      "source_url": "https://dtechservice.com/capabilities/",
+      "decision_context": "al data is collected\nWe collect personal data from you:\ndirectly, when you enter or send us information, such as when you for example, register with us, contact us (including via email), send us feedb",
+      "source_url": "https://boxxe.com/006r04399-xerox-genuine-b225-b230-b235-black-standard-capacity-toner-cartridge-1200-pages-006r04399",
+      "confidence": 0.39
+    },
+    {
+      "decision_context": "al data is collected\nWe collect personal data from you:\ndirectly, when you enter or send us information, such as when you for example, register with us, contact us (including via email), send us feedb",
+      "source_url": "https://boxxe.com/shop/hardware/monitors-and-displays/desktop-monitors/computer-monitors/9vf99aa-uuz-hp-e-series-e24-g4-60-5-cm-23-8-1920-x-1080-pixels-full-hd-lcd-black-silver",
+      "confidence": 0.39
+    },
+    {
+      "decision_context": "your next Node project with API Bakery\nAPI Bakery can now generate Node projects using Express web framework!\nOne of the most popular frameworks on the planet, Express, is a minimalistic framework for",
+      "source_url": "https://apibakery.com/blog/express/nodejs-and-express-support/",
+      "confidence": 0.41
+    },
+    {
+      "decision_context": "elated Papers MentionsView ImpactColonial Demography: viruses, adventures, households( with Alexandra Widmer), Very: endemic Century Population Thinking.\nMontag, 11. April 2011 um 09:49 | Geschrieben ",
+      "source_url": "http://harmgarth.com/administrator/lib/download-%D0%BA%D0%B0%D0%BD%D0%B0%D0%B4%D1%81%D0%BA%D0%B8%D0%B9-%D1%80%D0%BE%D0%BC%D0%B0%D0%BD-%D0%BF%D0%BE%D1%81%D0%BB%D0%B5-%D0%B2%D1%82%D0%BE%D1%80%D0%BE%D0%B9-%D0%BC%D0%B8%D1%80%D0%BE%D0%B2%D0%BE%D0%B9-%D0%B2%D0%BE%D0%B9%D0%BD%D1%8B.php",
       "confidence": 0.75
     },
     {
-      "decision_context": "Thanks for submitting! Our Solutions\nRFQ Automator\nProcurement Electronic Components\nIOT Plaform Manager\nProduct Compliance Monitoring\nAir Quality Monitoring\nCompliance Monitoring\nSemi conductor sourc",
-      "source_url": "https://www.basedig.com/mesure-qualite-air/036956aa-dcf3-4970-8dfd-6c86b2c4ef2d/beville-le-comte",
-      "confidence": 0.74
-    },
-    {
-      "decision_context": "PRODUCT DETAILS \u201c*\u201d Required Fields Are Compulsory\nNeed Parts By* Immediate Buy Within 1 Week Within 2 Week Within 4 Week Within 8 Week Bid Only Life Time Buy AOG\nCONTACT INFORMATION\nSelect Company Ty",
-      "source_url": "https://www.purchasingunion.com/aviation/rfq/cessna-aircraft/0411699/",
-      "confidence": 0.52
-    },
-    {
-      "decision_context": "you can click here to download the PDF file. Pricing Notes:\nAll Prices are Inclusive of GST\nIf your existing SG appliance does not have an active subscription or license, you will need to purchase a n",
-      "source_url": "https://www.enterpriseav.com.au/SG-Webserver-Protection-Renewal.asp",
-      "confidence": 0.71
-    },
-    {
-      "decision_context": "Big Compute Architecture Style\nAutoscaling best practices\nImplementation checklist\nAs you're looking to implement your own HPC solution on Azure, ensure you're reviewed the following topics:\nChoose th",
-      "source_url": "https://learn.microsoft.com/en-us/azure/architecture/topics/high-performance-computing",
-      "confidence": 0.32
+      "decision_context": "the whole weath of concurrency technology to support you.\nWith any copy process there will be latency, even if it is only milli- or micro-seconds. That's all it takes to introduce inconsistency betwee",
+      "source_url": "https://softwareengineering.stackexchange.com/questions/246686/let-applications-share-a-database-or-keep-them-in-sync-with-web-services/246891",
+      "confidence": 0.41
     }
   ],
   "examples_dropped": [
     {
-      "decision_context": "coli (STEC):\nSalmonella Verification Testing Program Monthly Posting\nChemical Residues and Contaminants\nHumane Handling Data\nLaboratory Sampling Data\nEgg Product Testing, Years 1995-2017\nPublic Health",
-      "source_url": "https://www.fsis.usda.gov/es/node/3800",
+      "decision_context": "tware\nField Service Management Software\nProperty Management Software\nTakeoff Software\nResearch\nThe Best-Paying Cities for Construction\nCities With the Most Construction Jobs\nCities Building the Most N",
+      "source_url": "https://constructioncoverage.com/property-management-software",
       "confidence": 0.46,
       "drop_reason": "failed_gate"
     },
     {
-      "decision_context": "He has played a key role in adding MLOps practices into the company\u2019s setup. Rahul\u2019s expertise in cloud platforms, infrastructure as code, and monitoring has made the deployment and management of mach",
-      "source_url": "https://brollyai.com/future-and-scope-of-mlops-careers-in-india/",
-      "confidence": 0.46,
+      "decision_context": "TIVATE THE EXTENSION TO SEE ALL THE DATA!\nIf you do not activate it you will not see the ER and some data will be incomplete!\n1\nAdd the extension\non your browser\n2\nLog in to\nInstagram.com\n3\nSearch pro",
+      "source_url": "https://business.notjustanalytics.com/plus/federico_fashion_style",
+      "confidence": 0.44,
       "drop_reason": "failed_gate"
     },
     {
-      "decision_context": "LT Browser\nNext-gen browser to build, test & debug responsive websites\nTest Analytics\nLambdaTest's AI-Powered Test Analytics & Observability Suite\nDigital Experience Testing\nUnified testing cloud to h",
-      "source_url": "https://www.lambdatest.com/automation-testing-advisor/selenium/methods/com.paypal.selion.mobile.sample.pages.TapPage.getSingleTapTextField",
-      "confidence": 0.33,
+      "decision_context": "rastructure to Reduce Monthly Cloud Spend\nShare\nCopy URL\nLinkedIn\nTwitter\nFacebook\nGet in touch\nGet in touch\nAldermore Bank Optimizes New Azure Infrastructure to Reduce Monthly Cloud Spend\nShare\nCopy ",
+      "source_url": "https://www.amdocs.com/insights/case-study/aldermore-bank-optimizes-new-azure-infrastructure-reduce-monthly-cloud-spend",
+      "confidence": 0.34,
       "drop_reason": "failed_gate"
     },
     {
-      "decision_context": "Get Custom Pricing\nSee what Acumatica can do for you. Take a 4-minute product tour Schedule a demo\nAcumatica Product Editions\nAcumatica SaaS FAQ\nAwards and User Reviews",
-      "source_url": "https://www.acumatica.com/erp-solutions-by-roles/erp-for-it-lead/",
-      "confidence": 0.82,
+      "decision_context": "ibutor-engagement\n/use-cases/customer-acquisition\nCommission Management\nDistributor Engagement\nCustomer Acquisition\nQuality and reliable software with the flexibility to personalize our unique needs.\n",
+      "source_url": "https://www.epixelmlmsoftware.com/de/our-testimonials",
+      "confidence": 0.8,
       "drop_reason": "failed_gate"
     },
     {
-      "decision_context": "Consider Organizational Scale\nThe size and structure of your organization dictate the type of BI tool you should choose:\nStartups: Often benefit from flexible and easy-to-implement solutions. Large En",
-      "source_url": "https://techextensor.com/blogs/data-driven-decision-making-how-analytics-is-reshaping-business-strategy",
-      "confidence": 0.83,
+      "decision_context": "am\nServices\nSAP Datasphere (DSP) Enablement Service\nSAP Analytics Cloud (SAC) Enablement Service\nArtificial Intelligence & Machine Learning\nCloud Transformation\nAnalytics and Planning\nStrategy and Adv",
+      "source_url": "https://tek-analytics.com/category/blog/page/3/",
+      "confidence": 0.49,
       "drop_reason": "failed_gate"
     }
   ],

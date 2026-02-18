@@ -262,6 +262,75 @@ def is_docs_or_help_page(url: str) -> bool:
     return bool(DOCS_URL_PATTERNS.search(url))
 
 
+# ── Source targeting: high-signal page types ──────────────────────────
+# Pages likely to contain real decision narratives get a score boost.
+# This shifts filtering to surface case studies, migration writeups,
+# and engineering blogs over generic product descriptions.
+
+HIGH_SIGNAL_URL_PATTERNS = re.compile(
+    r'(?:'
+    # Case studies / success stories
+    r'/case-?stud(?:y|ies)|/success-?stor(?:y|ies)|/customer-?stor(?:y|ies)|'
+    r'/customer-?case|/client-?stor(?:y|ies)|'
+    # Migration / switching content
+    r'/migrat(?:e|ion|ing)|/switch(?:ing|ed)|/mov(?:ing|ed)-?(?:from|to|away)|'
+    r'/from-\w+-to-\w+|/why-we-(?:chose|switched|moved|use|replaced)|'
+    # Comparison / evaluation content
+    r'/compar(?:e|ison|ing)|/vs-?|/versus|/alternatives?|/evaluation|'
+    r'/vendor-?(?:compar|select|assess|review)|/tool-?compar|'
+    # RFP / procurement guidance
+    r'/rfp|/procurement|/vendor-?select|/buying-?guide|/software-?select|'
+    # Engineering / retrospective blogs
+    r'/engineering-?blog|/tech-?blog|/retrospect|/post-?mortem|'
+    r'/lessons-?learned|/how-we-|/why-we-|'
+    # Security / compliance evaluations
+    r'/security-?(?:review|assessment|evaluat)|/compliance-?(?:review|check)|'
+    # Reviews / analysis
+    r'/review|/analysis|/deep-?dive|/breakdown'
+    r')',
+    re.I,
+)
+
+HIGH_SIGNAL_DOMAIN_PATTERNS = re.compile(
+    r'(?:'
+    r'g2\.com|capterra\.com|trustradius\.com|gartner\.com|'
+    r'forrester\.com|idc\.com|infoq\.com|'
+    r'engineering\.(?:\w+\.)?(?:com|io)|'
+    r'blog\.(?:\w+\.)?(?:com|io)|'
+    r'medium\.com|dev\.to|hashnode\.(?:com|dev)|'
+    r'hbr\.org|mckinsey\.com|deloitte\.com'
+    r')',
+    re.I,
+)
+
+# Low-signal URL patterns to downweight (not block — just lower effective score)
+LOW_SIGNAL_URL_PATTERNS = re.compile(
+    r'(?:'
+    r'/product[s]?/?$|/feature[s]?/?$|/pricing/?$|/plans/?$|'
+    r'/about/?$|/about-us/?$|/contact/?$|/login/?$|/signup/?$|'
+    r'/home/?$|/index|/404|/error|'
+    r'job|career|hire|recruit|position|opening'
+    r')',
+    re.I,
+)
+
+
+def get_source_score_modifier(url: str) -> int:
+    """
+    Return a score modifier based on URL type.
+    High-signal pages: +4 bonus
+    Low-signal pages: -4 penalty
+    Docs pages: already handled separately
+    """
+    if not url:
+        return 0
+    if HIGH_SIGNAL_URL_PATTERNS.search(url) or HIGH_SIGNAL_DOMAIN_PATTERNS.search(url):
+        return 4
+    if LOW_SIGNAL_URL_PATTERNS.search(url):
+        return -4
+    return 0
+
+
 # ── Core scoring ─────────────────────────────────────────────────────
 
 def split_sentences(text: str) -> list[str]:
@@ -382,9 +451,11 @@ def filter_passage(
     if len(text) < 80:
         return []
 
-    # Keyword score gate
+    # Keyword score gate with source-type modifier
     score, matched = score_text(text, signal_keywords)
-    if score < min_score:
+    source_mod = get_source_score_modifier(source_url)
+    effective_score = score + source_mod
+    if effective_score < min_score:
         return []
 
     # Constraint 2 at page level: early exit

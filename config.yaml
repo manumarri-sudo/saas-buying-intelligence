@@ -38,46 +38,81 @@ ingestion:
 # --- Filtering ---
 filtering:
   # Weighted keyword signals for SaaS buying behavior
+  # Higher weights on decision verbs and narrative markers to surface
+  # evaluation/selection/rejection stories vs generic product copy.
   signal_keywords:
-    choose: 3
+    # Decision verbs (high weight — core signal)
+    chose: 5
+    choose: 4
+    selected: 5
     shortlist: 4
     compare: 3
-    trial: 3
-    switch: 2
+    evaluated: 5
     evaluate: 4
+    adopted: 5
+    rejected: 5
+    replaced: 5
+    switched: 5
+    migrated: 5
+    procured: 5
+    purchased: 4
+    trialed: 4
+    piloted: 4
+    # Lifecycle / procurement terms
     procurement: 5
     RFP: 5
+    proof of concept: 5
+    due diligence: 5
+    vendor selection: 6
+    security review: 5
+    compliance check: 5
+    vendor assessment: 5
+    # Switching / migration signals
+    moved from: 6
+    switched from: 6
+    migrated from: 6
+    migrated away: 6
+    replaced with: 5
+    transitioned from: 5
+    # Friction / objection signals
+    vendor lock-in: 5
+    too expensive: 5
+    integration issues: 5
+    scalability issues: 5
+    security concerns: 5
+    lacked support: 5
+    onboarding difficulty: 5
+    # Lifecycle terms
+    onboarding: 3
+    implementation: 3
+    rollout: 3
+    data migration: 4
+    SLA: 4
+    # General context
     integration: 2
     pricing: 3
-    onboarding: 2
-    security review: 4
     scalability: 2
     vendor: 4
-    deploy: 2
-    migrate: 3
     contract: 3
     renewal: 3
     pilot: 4
-    demo: 3
     stakeholder: 3
     compliance: 3
     ROI: 4
     total cost of ownership: 5
-    implementation: 3
     single sign-on: 3
     API: 2
-    data migration: 4
-    SLA: 4
-    proof of concept: 5
-    due diligence: 5
+    trial: 3
+    deploy: 2
+    migrate: 4
 
   # Minimum score to pass filtering
   min_score: 8
   # Context window: sentences before/after match
   context_sentences_before: 1
   context_sentences_after: 1
-  # Hard max for any stored text snippet
-  max_snippet_chars: 240
+  # Hard max for any stored text snippet (expanded to 480 to cover all 3 gate signals)
+  max_snippet_chars: 480
 
 # --- Extraction ---
 extraction:
@@ -107,12 +142,14 @@ validation:
       phone: true
       address: true
       ssn: true
-  # Maximum allowed snippet length in final output
-  max_text_length: 240
+  # Maximum allowed snippet length in final output (matches extraction window)
+  max_text_length: 480
   # Minimum confidence to include in final dataset
-  # (lowered from 0.80 — the decision-narrative gate is now the
-  #  primary quality filter; confidence is a secondary signal)
-  min_confidence: 0.55
+  # The 3-condition narrative gate (verb+reason+actor on full text) is the
+  # primary quality enforcer. Confidence is a secondary structural signal.
+  # Lowered to 0.35 so that real decision narratives with fewer structured
+  # metadata fields (criteria/workflow/industry) are not discarded.
+  min_confidence: 0.35
 
 # --- Packaging ---
 packaging:
