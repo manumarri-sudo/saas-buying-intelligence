@@ -6,12 +6,14 @@ Supports:
   - sentence-transformers → numpy .npy files
   - Optional FAISS index creation
   - Optional pgvector-compatible output
+  - Incremental mode: only embed new rows, append to existing index
 
 Usage:
-  python generate_embeddings.py [--faiss] [--pgvector]
+  python generate_embeddings.py [--faiss] [--pgvector] [--incremental]
 """
 
 import argparse
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -20,10 +22,18 @@ import numpy as np
 import pandas as pd
 
 
+def _row_hash(row):
+    """Hash row content for change detection."""
+    text = f"{row.get('decision_context', '')}|{row.get('criteria', '')}|{row.get('workflow_step', '')}"
+    return hashlib.sha256(text.encode()).hexdigest()[:12]
+
+
 def main():
     parser = argparse.ArgumentParser(description="Generate embeddings")
     parser.add_argument("--faiss", action="store_true", help="Build FAISS index")
     parser.add_argument("--pgvector", action="store_true", help="Export for pgvector")
+    parser.add_argument("--incremental", action="store_true",
+                        help="Only embed new rows, append to existing")
     parser.add_argument(
         "--model", default="all-MiniLM-L6-v2",
         help="sentence-transformers model name"
@@ -44,12 +54,39 @@ def main():
     df = pd.read_parquet(dataset_path)
     print(f"Loaded {len(df)} rows")
 
-    # Build text for embedding: combine key fields
-    texts = (
-        df["decision_context"].fillna("")
-        + " | " + df["criteria"].fillna("")
-        + " | " + df["workflow_step"].fillna("")
-    ).tolist()
+    output_dir = Path(__file__).resolve().parent
+    npy_path = output_dir / "embeddings.npy"
+    hashes_path = output_dir / "row_hashes.json"
+
+    # Incremental mode: detect new rows
+    new_indices = list(range(len(df)))
+    existing_embeddings = None
+
+    if args.incremental and npy_path.exists() and hashes_path.exists():
+        existing_embeddings = np.load(npy_path)
+        with open(hashes_path) as f:
+            old_hashes = set(json.load(f))
+
+        current_hashes = [_row_hash(df.iloc[i]) for i in range(len(df))]
+        new_indices = [i for i, h in enumerate(current_hashes) if h not in old_hashes]
+
+        if not new_indices:
+            print("No new rows to embed. Embeddings are up to date.")
+            return
+
+        print(f"Incremental mode: {len(new_indices)} new rows "
+              f"(out of {len(df)} total)")
+
+    # Build texts for new rows
+    texts = []
+    for i in (new_indices if args.incremental else range(len(df))):
+        row = df.iloc[i]
+        text = (
+            str(row.get("decision_context", "") or "")
+            + " | " + str(row.get("criteria", "") or "")
+            + " | " + str(row.get("workflow_step", "") or "")
+        )
+        texts.append(text)
 
     # Generate embeddings
     try:
@@ -62,18 +99,39 @@ def main():
     model = SentenceTransformer(args.model)
 
     print(f"Encoding {len(texts)} texts...")
-    embeddings = model.encode(
+    new_embeddings = model.encode(
         texts,
         batch_size=args.batch_size,
         show_progress_bar=True,
         normalize_embeddings=True,
     )
 
+    # In incremental mode, rebuild full embedding array
+    if args.incremental and existing_embeddings is not None:
+        # Re-encode ALL rows for correct alignment with new dataset
+        print("Rebuilding full embeddings for alignment...")
+        all_texts = (
+            df["decision_context"].fillna("")
+            + " | " + df["criteria"].fillna("")
+            + " | " + df["workflow_step"].fillna("")
+        ).tolist()
+        embeddings = model.encode(
+            all_texts,
+            batch_size=args.batch_size,
+            show_progress_bar=True,
+            normalize_embeddings=True,
+        )
+    else:
+        embeddings = new_embeddings
+
     # Save numpy
-    output_dir = Path(__file__).resolve().parent
-    npy_path = output_dir / "embeddings.npy"
     np.save(npy_path, embeddings)
     print(f"Saved embeddings to {npy_path} — shape: {embeddings.shape}")
+
+    # Save row hashes for incremental detection
+    all_hashes = [_row_hash(df.iloc[i]) for i in range(len(df))]
+    with open(hashes_path, "w") as f:
+        json.dump(all_hashes, f)
 
     # Save row IDs for alignment
     ids_path = output_dir / "row_ids.json"

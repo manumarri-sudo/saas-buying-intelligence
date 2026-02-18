@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-Stage 3: Extraction
+Stage 3: Extraction (with LLM caching)
 
 Reads scored passages, applies rule-based extraction to produce
-structured rows. Optionally uses LLM fallback for low-confidence rows.
-Writes structured rows to data/extracted/.
+structured rows. Optionally uses LLM fallback for low-confidence rows
+with disk-backed caching to avoid re-processing identical snippets.
 """
 
 import gzip
@@ -21,6 +21,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from lib.config_loader import get_config, resolve_path
 from lib.extractor import extract_row, ExtractedRow
+from lib.llm_cache import LLMCache
+from lib.perf_logger import PerfLogger
 
 logging.basicConfig(
     level=logging.INFO,
@@ -62,12 +64,12 @@ def rule_based_extraction(
             crawl_date=p.get("crawl_date", ""),
             matched_keywords=p.get("matched_keywords", []),
             max_text_length=max_text_length,
+            has_reasoning=p.get("has_reasoning", True),
         )
         if row is not None:
             rows.append(row.to_dict())
             if row.confidence < 0.4:
                 low_conf.append(p)
-        # Passages that yield no row are dropped (no signals found)
 
     return rows, low_conf
 
@@ -75,10 +77,11 @@ def rule_based_extraction(
 def llm_classify_batch(
     passages: list[dict],
     cfg: dict,
+    cache: LLMCache,
 ) -> list[dict]:
     """
     Use LLM to classify low-confidence passages.
-    Returns additional structured rows.
+    Checks cache first to avoid redundant API calls.
     """
     llm_cfg = cfg["extraction"]["llm_fallback"]
     api_key = os.environ.get(llm_cfg["api_key_env"], "")
@@ -102,6 +105,7 @@ def llm_classify_batch(
 
     rows = []
     calls_made = 0
+    cache_hits = 0
 
     system_prompt = (
         "You are a B2B SaaS buying behavior analyst. "
@@ -119,6 +123,16 @@ def llm_classify_batch(
     )
 
     for p in passages[:max_calls]:
+        snippet = p["text"][:240]
+
+        # Check cache first
+        cached = cache.get(snippet)
+        if cached is not None:
+            if not cached.get("skip"):
+                rows.append(cached)
+            cache_hits += 1
+            continue
+
         try:
             response = client.messages.create(
                 model=model,
@@ -126,30 +140,31 @@ def llm_classify_batch(
                 system=system_prompt,
                 messages=[{
                     "role": "user",
-                    "content": f"Passage: {p['text'][:240]}",
+                    "content": f"Passage: {snippet}",
                 }],
             )
 
             calls_made += 1
             text = response.content[0].text.strip()
 
-            # Parse JSON response
             parsed = json.loads(text)
+
+            # Cache the result regardless
+            cache.put(snippet, parsed)
+
             if parsed.get("skip"):
                 continue
 
-            # Validate required fields
             required = [
                 "decision_context", "criteria", "objection",
                 "workflow_step", "industry_hint", "confidence",
             ]
             if all(k in parsed for k in required):
-                # Enforce text length limit
                 dc = str(parsed["decision_context"])[:237] + "..." \
                     if len(str(parsed["decision_context"])) > 240 \
                     else str(parsed["decision_context"])
 
-                rows.append({
+                row_data = {
                     "decision_context": dc,
                     "criteria": str(parsed["criteria"]),
                     "objection": str(parsed["objection"]),
@@ -161,20 +176,25 @@ def llm_classify_batch(
                     "matched_keywords": ", ".join(
                         p.get("matched_keywords", [])
                     ),
-                })
+                }
+                rows.append(row_data)
 
         except (json.JSONDecodeError, KeyError, IndexError) as e:
             logger.debug(f"LLM response parse error: {e}")
+            cache.put(snippet, {"skip": True, "error": str(e)})
             continue
         except Exception as e:
             logger.warning(f"LLM call failed: {e}")
             continue
 
-        time.sleep(0.2)  # rate limiting
+        time.sleep(0.2)
+
+    # Flush cache to disk
+    cache.flush()
 
     logger.info(
-        f"LLM classification: {calls_made} calls, "
-        f"{len(rows)} rows extracted"
+        f"LLM classification: {calls_made} API calls, "
+        f"{cache_hits} cache hits, {len(rows)} rows extracted"
     )
     return rows
 
@@ -187,6 +207,13 @@ def main():
     filtered_dir = resolve_path("data/filtered")
     extracted_dir = resolve_path("data/extracted")
     extracted_dir.mkdir(parents=True, exist_ok=True)
+
+    perf = PerfLogger()
+    perf.start_stage("extraction")
+
+    # Initialize LLM cache
+    cache_dir = resolve_path("data/cache")
+    cache = LLMCache(cache_dir)
 
     passages = load_scored_passages(filtered_dir)
     if not passages:
@@ -205,7 +232,7 @@ def main():
     llm_rows = []
     if extract_cfg["llm_fallback"]["enabled"]:
         logger.info("=== LLM Fallback Classification ===")
-        llm_rows = llm_classify_batch(low_conf_passages, cfg)
+        llm_rows = llm_classify_batch(low_conf_passages, cfg, cache)
         rows.extend(llm_rows)
 
     # Build DataFrame
@@ -232,6 +259,7 @@ def main():
     logger.info(f"Saved {len(df)} rows to {parquet_path}")
 
     # Save extraction stats
+    llm_cache_stats = cache.stats()
     stats = {
         "stage": "extraction",
         "passages_input": len(passages),
@@ -252,6 +280,7 @@ def main():
         },
         "workflow_step_counts": df["workflow_step"].value_counts().to_dict()
             if not df.empty else {},
+        "llm_cache": llm_cache_stats,
         "pipeline_timestamp": time.strftime(
             "%Y-%m-%dT%H:%M:%SZ", time.gmtime()
         ),
@@ -260,6 +289,13 @@ def main():
     stats_path = extracted_dir / "extraction_stats.json"
     with open(stats_path, "w") as f:
         json.dump(stats, f, indent=2)
+
+    perf.end_stage()
+    perf.record("passages_input", len(passages))
+    perf.record("rows_extracted", len(df))
+    perf.record("llm_cache_hits", llm_cache_stats["hits"])
+    perf.record("llm_cache_misses", llm_cache_stats["misses"])
+    perf.save_report(resolve_path("data/manifests/extract_perf.json"))
 
     logger.info(f"Extraction complete. Stats saved to {stats_path}")
     return len(df)

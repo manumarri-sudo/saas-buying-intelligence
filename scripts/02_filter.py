@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """
-Stage 2: Filtering
+Stage 2: Filtering (incremental, shard-aware)
 
-Reads ingested records, scores them against SaaS buying signal keywords,
-extracts context windows, and writes scored passages to data/filtered/.
+Reads ingested records (from shards or combined file), scores them
+against SaaS buying signal keywords, extracts context windows,
+and writes scored passages to data/filtered/.
+
+Supports per-shard processing to avoid reprocessing unchanged data.
 """
 
 import gzip
@@ -17,6 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from lib.config_loader import get_config, resolve_path
 from lib.keyword_scorer import filter_passage
+from lib.perf_logger import PerfLogger
 
 logging.basicConfig(
     level=logging.INFO,
@@ -26,11 +30,29 @@ logger = logging.getLogger("02_filter")
 
 
 def load_ingested_records(raw_dir: Path) -> list[dict]:
-    """Load records from the ingestion stage."""
+    """Load records from shards or combined file."""
+    shard_dir = raw_dir / "shards"
+
+    # Prefer shards if available
+    if shard_dir.exists():
+        shard_files = sorted(shard_dir.glob("*.json.gz"))
+        if shard_files:
+            all_records = []
+            for sf in shard_files:
+                try:
+                    with gzip.open(sf, "rt", encoding="utf-8") as f:
+                        records = json.load(f)
+                        all_records.extend(records)
+                except Exception as e:
+                    logger.warning(f"Failed to read shard {sf.name}: {e}")
+            logger.info(f"Loaded {len(all_records)} records from {len(shard_files)} shards")
+            return all_records
+
+    # Fallback to combined file
     input_path = raw_dir / "ingested_records.json.gz"
     if not input_path.exists():
         logger.error(f"Ingested records not found at {input_path}")
-        logger.error("Run 01_ingest.py first.")
+        logger.error("Run 01_ingest_fast.py first.")
         return []
 
     logger.info(f"Loading records from {input_path}")
@@ -54,6 +76,9 @@ def main():
     raw_dir = resolve_path("data/raw")
     filtered_dir = resolve_path("data/filtered")
     filtered_dir.mkdir(parents=True, exist_ok=True)
+
+    perf = PerfLogger()
+    perf.start_stage("filtering")
 
     records = load_ingested_records(raw_dir)
     if not records:
@@ -123,6 +148,11 @@ def main():
                 "%Y-%m-%dT%H:%M:%SZ", time.gmtime()
             ),
         }, f, indent=2)
+
+    perf.end_stage()
+    perf.record("records_processed", stats["records_processed"])
+    perf.record("passages_extracted", stats["total_passages"])
+    perf.save_report(resolve_path("data/manifests/filter_perf.json"))
 
     logger.info(f"Filtering complete:")
     logger.info(f"  Records processed: {stats['records_processed']}")

@@ -24,6 +24,7 @@ class ScoredPassage:
     source_url: str
     crawl_date: str
     segment_id: str
+    has_reasoning: bool = True
 
     def to_dict(self) -> dict:
         return {
@@ -33,6 +34,7 @@ class ScoredPassage:
             "source_url": self.source_url,
             "crawl_date": self.crawl_date,
             "segment_id": self.segment_id,
+            "has_reasoning": self.has_reasoning,
         }
 
 
@@ -225,18 +227,19 @@ def extract_context_windows(
                 if len(snippet) > max_snippet_chars:
                     snippet = snippet[:max_snippet_chars - 3] + "..."
 
-                # Constraint 2+3 at snippet level: require verb+noun+reasoning
+                # Constraint 2 at snippet level: require verb+noun
                 if not has_decision_verb(snippet):
                     continue
                 if not has_software_noun(snippet):
                     continue
-                if not has_reasoning_phrase(snippet):
-                    continue
 
+                # Reasoning phrase is tracked but not a hard gate —
+                # the extractor uses it as a confidence signal
                 windows.append({
                     "snippet": snippet,
                     "matched_keyword": kw,
                     "sentence_index": i,
+                    "has_reasoning": has_reasoning_phrase(snippet),
                 })
 
     return windows
@@ -282,7 +285,7 @@ def filter_passage(
     if not has_software_noun(text):
         return []
 
-    # Extract context windows (each window re-checked for verb+noun+reasoning)
+    # Extract context windows (each window re-checked for verb+noun)
     windows = extract_context_windows(
         text, signal_keywords,
         sentences_before, sentences_after,
@@ -298,6 +301,7 @@ def filter_passage(
             source_url=source_url,
             crawl_date=crawl_date,
             segment_id=segment_id,
+            has_reasoning=win.get("has_reasoning", True),
         ))
 
     return passages

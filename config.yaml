@@ -72,7 +72,7 @@ filtering:
     due diligence: 5
 
   # Minimum score to pass filtering
-  min_score: 10
+  min_score: 8
   # Context window: sentences before/after match
   context_sentences_before: 1
   context_sentences_after: 1
@@ -97,7 +97,7 @@ extraction:
 validation:
   # Fuzzy deduplication
   dedup:
-    similarity_threshold: 85                     # 0-100, rapidfuzz ratio
+    similarity_threshold: 90                     # 0-100, rapidfuzz ratio
     field: "decision_context"
   # PII detection — regex-based
   pii:
@@ -110,7 +110,7 @@ validation:
   # Maximum allowed snippet length in final output
   max_text_length: 240
   # Minimum confidence to include in final dataset
-  min_confidence: 0.7
+  min_confidence: 0.81
 
 # --- Packaging ---
 packaging:

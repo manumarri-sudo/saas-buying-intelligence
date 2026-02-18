@@ -109,7 +109,7 @@ run_stage() {
     echo ""
 }
 
-run_stage 1 "Ingestion"  "01_ingest.py"
+run_stage 1 "Ingestion"  "01_ingest_fast.py"
 run_stage 2 "Filtering"  "02_filter.py"
 run_stage 3 "Extraction" "03_extract.py"
 run_stage 4 "Validation" "04_validate.py"

@@ -117,15 +117,16 @@ def _compute_confidence(
     objection_matches: list[str],
     industry_matches: list[str],
     text_length: int,
+    has_reasoning: bool = True,
 ) -> float:
     """
     Heuristic confidence score 0.0–1.0.
-    Rewards: multiple signal types found, reasonable text length.
-    Penalizes: very short text, no structured signals.
+    Rewards: multiple signal types found, reasoning language, reasonable text length.
+    Penalizes: very short text, no structured signals, no reasoning language.
 
     Note: All rows reaching this point have already passed precision gates
-    (decision verb + software noun + reasoning phrase), so the baseline
-    is higher than a naive scorer would assign.
+    (decision verb + software noun), so the baseline is higher than a
+    naive scorer would assign.
     """
     score = 0.0
 
@@ -139,33 +140,36 @@ def _compute_confidence(
 
     # Workflow signal — primary indicator
     if workflow_matches:
-        score += 0.32
+        score += 0.30
         if len(workflow_matches) > 1:
             score += 0.05
     # Criteria signal — strong buying indicator
     if criteria_matches:
-        score += 0.26
+        score += 0.25
         if len(criteria_matches) > 1:
             score += 0.08
     # Objection signal (strong buying discussion indicator)
     if objection_matches:
-        score += 0.12
+        score += 0.10
     # Industry signal
     if industry_matches:
-        score += 0.07
+        score += 0.05
+
+    # Reasoning phrase bonus — causal/deliberative language is a quality signal
+    if has_reasoning:
+        score += 0.08
 
     # Multi-signal bonus: rows with 2+ signal types are high-quality
-    # (all rows already passed precision gates: verb + noun + reasoning)
     if signal_types >= 3:
         score += 0.12
     elif signal_types >= 2:
-        score += 0.10
+        score += 0.08
 
     # Text length bonus
     if 80 < text_length < 240:
         score += 0.05
     elif text_length >= 50:
-        score += 0.02
+        score += 0.03
 
     return min(round(score, 2), 1.0)
 
@@ -176,6 +180,7 @@ def extract_row(
     crawl_date: str,
     matched_keywords: list[str],
     max_text_length: int = 240,
+    has_reasoning: bool = True,
 ) -> ExtractedRow | None:
     """
     Extract a structured row from a scored passage.
@@ -199,7 +204,7 @@ def extract_row(
 
     confidence = _compute_confidence(
         workflow_matches, criteria_matches, objection_matches,
-        industry_matches, len(text),
+        industry_matches, len(text), has_reasoning,
     )
 
     # Truncate text fields to max length
