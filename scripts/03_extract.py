@@ -65,6 +65,8 @@ def rule_based_extraction(
             matched_keywords=p.get("matched_keywords", []),
             max_text_length=max_text_length,
             has_reasoning=p.get("has_reasoning", True),
+            has_narrative=p.get("has_narrative", False),
+            is_docs_page=p.get("is_docs_page", False),
         )
         if row is not None:
             rows.append(row.to_dict())

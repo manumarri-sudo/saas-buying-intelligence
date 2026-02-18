@@ -118,11 +118,13 @@ def _compute_confidence(
     industry_matches: list[str],
     text_length: int,
     has_reasoning: bool = True,
+    has_narrative: bool = False,
+    is_docs_page: bool = False,
 ) -> float:
     """
     Heuristic confidence score 0.0–1.0.
-    Rewards: multiple signal types found, reasoning language, reasonable text length.
-    Penalizes: very short text, no structured signals, no reasoning language.
+    Rewards: narrative reasoning markers, multiple signal types, reasoning language.
+    Penalizes: docs/help pages without evaluation reasoning, very short text.
 
     Note: All rows reaching this point have already passed precision gates
     (decision verb + software noun), so the baseline is higher than a
@@ -155,9 +157,14 @@ def _compute_confidence(
     if industry_matches:
         score += 0.05
 
-    # Reasoning phrase bonus — causal/deliberative language is a quality signal
+    # Reasoning phrase bonus — causal/deliberative language
     if has_reasoning:
-        score += 0.08
+        score += 0.06
+
+    # Narrative reasoning marker — first-person decision language
+    # (e.g. "we chose", "after testing", "challenge", "decided to")
+    if has_narrative:
+        score += 0.06
 
     # Multi-signal bonus: rows with 2+ signal types are high-quality
     if signal_types >= 3:
@@ -171,7 +178,12 @@ def _compute_confidence(
     elif text_length >= 50:
         score += 0.03
 
-    return min(round(score, 2), 1.0)
+    # Docs/help center penalty — descriptive content gets downweighted
+    # UNLESS it also has narrative markers (implementation reasoning)
+    if is_docs_page and not has_narrative:
+        score -= 0.12
+
+    return min(max(round(score, 2), 0.0), 1.0)
 
 
 def extract_row(
@@ -181,6 +193,8 @@ def extract_row(
     matched_keywords: list[str],
     max_text_length: int = 240,
     has_reasoning: bool = True,
+    has_narrative: bool = False,
+    is_docs_page: bool = False,
 ) -> ExtractedRow | None:
     """
     Extract a structured row from a scored passage.
@@ -205,6 +219,7 @@ def extract_row(
     confidence = _compute_confidence(
         workflow_matches, criteria_matches, objection_matches,
         industry_matches, len(text), has_reasoning,
+        has_narrative, is_docs_page,
     )
 
     # Truncate text fields to max length

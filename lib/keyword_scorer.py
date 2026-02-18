@@ -4,9 +4,11 @@ Keyword scoring engine for SaaS buying signal detection.
 Enforces precision-focused filtering:
   1. Domain blocklist: reject gambling, dating, coupon, adult, SEO spam URLs
   2. Co-occurrence: require BOTH a decision verb AND a software-related noun
-  3. Reasoning phrase: require causal/deliberative language
-  4. Keyword scoring with weighted signals
-  5. Context window extraction with 240-char limit
+  3. Narrative reasoning markers: prioritize deliberative content
+  4. Navigation text cleaning: strip menus, headers, nav artifacts
+  5. Docs/help center detection: flag descriptive-only pages
+  6. Keyword scoring with weighted signals
+  7. Context window extraction with 240-char limit
 """
 
 import re
@@ -25,6 +27,8 @@ class ScoredPassage:
     crawl_date: str
     segment_id: str
     has_reasoning: bool = True
+    has_narrative: bool = False
+    is_docs_page: bool = False
 
     def to_dict(self) -> dict:
         return {
@@ -35,6 +39,8 @@ class ScoredPassage:
             "crawl_date": self.crawl_date,
             "segment_id": self.segment_id,
             "has_reasoning": self.has_reasoning,
+            "has_narrative": self.has_narrative,
+            "is_docs_page": self.is_docs_page,
         }
 
 
@@ -162,6 +168,100 @@ def has_reasoning_phrase(text: str) -> bool:
     return bool(REASONING_PHRASES.search(text))
 
 
+# ── Narrative reasoning markers ──────────────────────────────────────
+# Lightweight markers that signal the text is a decision narrative,
+# not just a product feature description.
+
+NARRATIVE_MARKERS = re.compile(
+    r'\b('
+    r'because|after\s+testing|decided\s+to|evaluated|'
+    r'chose|rejected|due\s+to|needed|'
+    r'challenge|concern|issue|'
+    r'struggled|switched\s+(?:from|to)|'
+    r'we\s+(?:chose|picked|went|opted|decided|needed|found|tried|tested)|'
+    r'our\s+(?:team|company|org|experience)|'
+    r'pain\s+point|deal\s*breaker|lesson\s+learned|'
+    r'in\s+hindsight|looking\s+back|turned\s+out|'
+    r'pros?\s+and\s+cons?|trade-?off|downside|upside'
+    r')\b',
+    re.I,
+)
+
+
+def has_narrative_marker(text: str) -> bool:
+    """Check for first-person or deliberative reasoning markers."""
+    return bool(NARRATIVE_MARKERS.search(text))
+
+
+# ── Navigation / boilerplate cleaner ─────────────────────────────────
+# Removes site-chrome artifacts that leak into Common Crawl text.
+
+_NAV_PATTERNS = [
+    # Menu-like fragments: "Home | About | Pricing | Contact"
+    re.compile(r'^(?:[A-Z][a-z]+\s*[|/•·]\s*){3,}[A-Z][a-z]+\s*$', re.M),
+    # Breadcrumbs: "Home > Products > CRM > Pricing"
+    re.compile(r'^(?:[A-Za-z ]+\s*>\s*){2,}[A-Za-z ]+\s*$', re.M),
+    # Repeated short lines that look like nav (e.g. "Login\nSign Up\nPricing\nBlog")
+    re.compile(r'(?:^.{1,20}\n){4,}', re.M),
+    # Footer boilerplate
+    re.compile(
+        r'(?:©|copyright|\bAll\s+Rights\s+Reserved\b|Privacy\s+Policy|'
+        r'Terms\s+of\s+(?:Service|Use)|Cookie\s+(?:Policy|Settings)|'
+        r'Sitemap|Unsubscribe).*$',
+        re.I | re.M,
+    ),
+    # Social media link clusters
+    re.compile(
+        r'(?:Follow\s+us|Share\s+(?:on|this)|Tweet|Pin\s+it|'
+        r'Facebook|Twitter|LinkedIn|Instagram|YouTube)\s*[|/•·\s]*'
+        r'(?:Facebook|Twitter|LinkedIn|Instagram|YouTube)',
+        re.I,
+    ),
+    # "Skip to content" / "Skip to main" accessibility links
+    re.compile(r'^Skip\s+to\s+(?:content|main|navigation)\s*$', re.I | re.M),
+    # Cookie consent banners
+    re.compile(
+        r'(?:We\s+use\s+cookies|This\s+(?:site|website)\s+uses\s+cookies|'
+        r'Accept\s+(?:all\s+)?cookies|Cookie\s+preferences).*?(?:\.|$)',
+        re.I,
+    ),
+]
+
+
+def clean_nav_artifacts(text: str) -> str:
+    """Strip navigation fragments, headers, footers, and boilerplate."""
+    cleaned = text
+    for pattern in _NAV_PATTERNS:
+        cleaned = pattern.sub('', cleaned)
+    # Collapse resulting blank lines
+    cleaned = re.sub(r'\n{3,}', '\n\n', cleaned)
+    return cleaned.strip()
+
+
+# ── Docs / help center detection ─────────────────────────────────────
+# Flag pages that are product docs or help centers — these describe
+# features but rarely contain buying decision reasoning.
+
+DOCS_URL_PATTERNS = re.compile(
+    r'(?:'
+    r'/docs?/|/help/|/support/|/kb/|/knowledge-?base/|'
+    r'/api-?(?:reference|docs?)/|/developer[s]?/|'
+    r'/guide[s]?/|/tutorial[s]?/|/how-?to/|/faq/|'
+    r'/changelog/|/release-?notes?/|/reference/|'
+    r'docs\.|help\.|support\.|wiki\.|learn\.|'
+    r'developer[s]?\.'
+    r')',
+    re.I,
+)
+
+
+def is_docs_or_help_page(url: str) -> bool:
+    """Detect documentation, help center, and API reference URLs."""
+    if not url:
+        return False
+    return bool(DOCS_URL_PATTERNS.search(url))
+
+
 # ── Core scoring ─────────────────────────────────────────────────────
 
 def split_sentences(text: str) -> list[str]:
@@ -208,7 +308,8 @@ def extract_context_windows(
 ) -> list[dict]:
     """
     Find keyword matches and extract surrounding sentence context.
-    Only yields windows that individually pass verb+noun+reasoning checks.
+    Only yields windows that pass verb+noun checks.
+    Tracks narrative markers and reasoning phrases as quality signals.
     """
     sentences = split_sentences(text)
     windows = []
@@ -233,13 +334,13 @@ def extract_context_windows(
                 if not has_software_noun(snippet):
                     continue
 
-                # Reasoning phrase is tracked but not a hard gate —
-                # the extractor uses it as a confidence signal
+                # Track quality signals (not hard gates)
                 windows.append({
                     "snippet": snippet,
                     "matched_keyword": kw,
                     "sentence_index": i,
                     "has_reasoning": has_reasoning_phrase(snippet),
+                    "has_narrative": has_narrative_marker(snippet),
                 })
 
     return windows
@@ -262,9 +363,11 @@ def filter_passage(
     Gate order:
       1. Domain blocklist check
       2. Spam content check
-      3. Keyword score threshold
-      4. Page-level: decision verb + software noun presence
-      5. Per-snippet: decision verb + software noun + reasoning phrase
+      3. Navigation artifact cleaning
+      4. Keyword score threshold
+      5. Page-level: decision verb + software noun presence
+      6. Per-snippet: decision verb + software noun (reasoning tracked)
+      7. Docs/help center detection (tracked, not gated)
     """
     # Constraint 1: domain blocklist
     if is_blocked_domain(source_url):
@@ -272,6 +375,11 @@ def filter_passage(
 
     # Constraint 1b: spam content check on full text
     if has_spam_content(text):
+        return []
+
+    # Clean navigation artifacts before scoring
+    text = clean_nav_artifacts(text)
+    if len(text) < 80:
         return []
 
     # Keyword score gate
@@ -284,6 +392,9 @@ def filter_passage(
         return []
     if not has_software_noun(text):
         return []
+
+    # Detect docs/help pages (tracked as metadata, not hard-gated)
+    is_docs = is_docs_or_help_page(source_url)
 
     # Extract context windows (each window re-checked for verb+noun)
     windows = extract_context_windows(
@@ -302,6 +413,8 @@ def filter_passage(
             crawl_date=crawl_date,
             segment_id=segment_id,
             has_reasoning=win.get("has_reasoning", True),
+            has_narrative=win.get("has_narrative", False),
+            is_docs_page=is_docs,
         ))
 
     return passages
